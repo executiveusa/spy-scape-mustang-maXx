@@ -43,28 +43,18 @@ echo %CYAN%========================================%NC%
 echo.
 
 REM === Check Arguments ===
-if "%1"=="" (
-    echo %YELLOW%ERROR: Missing GitHub Token%NC%
-    echo.
-    echo Usage: %0 GITHUB_TOKEN VERCEL_TOKEN GITHUB_USERNAME
-    echo.
-    echo Example:
-    echo   %0 ghp_yourtoken yourverceltoken johndoe
-    echo.
-    echo Need tokens?
-    echo   GitHub: https://github.com/settings/tokens
-    echo   Vercel: https://vercel.com/account/tokens
-    goto :end
-)
+if "%GITHUB_TOKEN%"=="" set "GITHUB_TOKEN=%1"
+if "%VERCEL_TOKEN%"=="" set "VERCEL_TOKEN=%2"
+if "%GITHUB_USERNAME%"=="" set "GITHUB_USERNAME=%3"
 
-set "GITHUB_TOKEN=%1"
-set "VERCEL_TOKEN=%2"
-set "GITHUB_USERNAME=%3"
+REM === Try to load tokens from environment ===
+if "%GITHUB_TOKEN%"=="" set "GITHUB_TOKEN=%GITHUB_TOKEN%"
+if "%VERCEL_TOKEN%"=="" set "VERCEL_TOKEN=%VERCEL_TOKEN%"
+if "%GITHUB_USERNAME%"=="" set "GITHUB_USERNAME=%GITHUB_USERNAME%"
 
-if "%GITHUB_USERNAME%"=="" (
-    echo %YELLOW%ERROR: Missing GitHub Username%NC%
-    echo Usage: %0 GITHUB_TOKEN VERCEL_TOKEN GITHUB_USERNAME
-    goto :end
+if "%GITHUB_TOKEN%"=="" (
+    echo %YELLOW%WARNING: GitHub Token not provided%NC%
+    echo Set GITHUB_TOKEN env var or pass as first argument
 )
 
 echo %GREEN%[1/7]%NC% Checking prerequisites...
