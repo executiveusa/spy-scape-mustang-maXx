@@ -1,0 +1,6 @@
+# Cloudflare Pages redirects
+# https://developers.cloudflare.com/pages/configuration/redirects/
+
+# SPA fallback — Cloudflare Pages handles this automatically for static exports
+# Add custom redirects below as needed:
+# /old-path  /new-path  301
