@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+
+# Build output (rebuild inside Docker)
+.next
+out
+
+# Environment files (set via Docker env vars)
+.env
+.env.local
+.env*.local
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage
+
+# Docs / Scripts (not needed in image)
+*.md
+deploy.bat
+deploy-local.bat
+install.bat
+coolify.json
+docker-compose.yml
+vercel.json
+.env.example
+
+# Source control
+.git
+.gitignore
+
+# Temp files
+*.tmp
+*.temp
