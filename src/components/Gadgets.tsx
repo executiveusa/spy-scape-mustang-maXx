@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Smartphone, Watch, Camera, Microphone, Key, Radio } from 'lucide-react';
+import { Smartphone, Watch, Camera, Mic, Key, Radio } from 'lucide-react';
 
 const gadgets = [
   {
@@ -25,7 +25,7 @@ const gadgets = [
   {
     name: 'Wiretap Device',
     description: 'Long-range audio interception system.',
-    icon: Microphone,
+    icon: Mic,
     availability: 'Available',
   },
   {
