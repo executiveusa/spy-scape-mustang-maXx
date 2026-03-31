@@ -1,7 +1,7 @@
 {
   "name": "spy-scape-mustang-maXx",
-  "version": "1.0.0",
-  "description": "SpyScape recreation with Mustang Maxx 006 branding - A spy-themed interactive experience",
+  "version": "2.0.0",
+  "description": "Mustang Maxx 006 — Spy-themed scroll experience for MACS Digital Media",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "next": "14.1.0",
-    "next-auth": "^4.24.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "framer-motion": "^10.18.0",
+    "gsap": "^3.12.5",
     "lucide-react": "^0.309.0",
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.0"
@@ -23,7 +23,6 @@
     "@types/node": "^20.10.6",
     "@types/react": "^18.2.46",
     "@types/react-dom": "^18.2.18",
-    "@types/three": "^0.160.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",

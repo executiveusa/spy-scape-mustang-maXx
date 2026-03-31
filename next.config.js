@@ -1,15 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: 'export',
   reactStrictMode: true,
   images: {
-    domains: ['images.unsplash.com', 'yappy-verse.com'],
     unoptimized: true,
   },
-  webpack: (config) => {
-    config.externals = [...(config.externals || []), { canvas: 'canvas' }];
-    return config;
-  },
+  trailingSlash: true,
 };
 
 module.exports = nextConfig;

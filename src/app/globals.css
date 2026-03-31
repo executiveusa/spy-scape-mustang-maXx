@@ -2,13 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --cyan-400: #00F0FF;
-  --cyan-500: #00C8FF;
-  --neon-red: #FF3366;
-  --neon-gold: #FFD700;
-}
-
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -17,189 +10,74 @@
   }
 
   body {
-    @apply bg-black text-white overflow-x-hidden;
+    background-color: #05070a;
+    color: #e5e7eb;
+    overflow-x: hidden;
   }
 
-  /* Custom scrollbar */
+  ::selection {
+    background-color: rgba(70, 213, 255, 0.25);
+    color: #fff;
+  }
+
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-900;
+    background: #0c0f14;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-cyan-400/50 rounded-full;
+    background: rgba(70, 213, 255, 0.3);
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-cyan-400;
+    background: rgba(70, 213, 255, 0.5);
   }
 }
 
 @layer components {
-  /* Glitch text effect */
-  .glitch {
-    position: relative;
+  .section-container {
+    @apply max-w-6xl mx-auto px-5;
   }
 
-  .glitch::before,
-  .glitch::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+  .text-glow-cyan {
+    text-shadow: 0 0 12px rgba(70, 213, 255, 0.4);
   }
 
-  .glitch::before {
-    left: 2px;
-    text-shadow: -1px 0 var(--neon-red);
-    clip-path: inset(0 0 0 0);
-    animation: glitch-1 2s infinite linear alternate-reverse;
+  .border-subtle {
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
-  .glitch::after {
-    left: -2px;
-    text-shadow: -1px 0 var(--cyan-400);
-    clip-path: inset(0 0 0 0);
-    animation: glitch-2 2s infinite linear alternate-reverse;
+  .card-noir {
+    @apply bg-maxx-panel border border-maxx-border;
+    border-radius: 12px;
   }
 
-  @keyframes glitch-1 {
-    0% {
-      clip-path: inset(20% 0 60% 0);
-    }
-    20% {
-      clip-path: inset(60% 0 10% 0);
-    }
-    40% {
-      clip-path: inset(40% 0 50% 0);
-    }
-    60% {
-      clip-path: inset(80% 0 5% 0);
-    }
-    80% {
-      clip-path: inset(10% 0 70% 0);
-    }
-    100% {
-      clip-path: inset(30% 0 30% 0);
-    }
-  }
-
-  @keyframes glitch-2 {
-    0% {
-      clip-path: inset(10% 0 80% 0);
-    }
-    20% {
-      clip-path: inset(30% 0 20% 0);
-    }
-    40% {
-      clip-path: inset(70% 0 20% 0);
-    }
-    60% {
-      clip-path: inset(20% 0 60% 0);
-    }
-    80% {
-      clip-path: inset(60% 0 10% 0);
-    }
-    100% {
-      clip-path: inset(40% 0 40% 0);
-    }
-  }
-
-  /* Scan line animation */
   .scan-line {
     width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--cyan-400), transparent);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #46d5ff, transparent);
     animation: scan 3s linear infinite;
   }
 
   @keyframes scan {
-    0% {
-      transform: translateY(0);
-      opacity: 0;
-    }
-    10% {
-      opacity: 1;
-    }
-    90% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(100vh);
-      opacity: 0;
-    }
-  }
-
-  /* Pulse glow effect */
-  .pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 40px rgba(0, 240, 255, 0.6);
-    }
-  }
-
-  /* Cyber grid background */
-  .cyber-grid {
-    background-image: 
-      linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-  }
-
-  /* Gradient radial */
-  .bg-gradient-radial {
-    background-image: radial-gradient(circle at center, var(--tw-gradient-from), var(--tw-gradient-to));
-  }
-
-  /* Button styles */
-  .btn-spy-primary {
-    @apply px-6 py-3 bg-cyan-400 text-black font-bold rounded-full 
-           hover:bg-cyan-300 transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-black;
-  }
-
-  .btn-spy-secondary {
-    @apply px-6 py-3 bg-transparent border border-cyan-400 text-cyan-400 font-bold rounded-full 
-           hover:bg-cyan-400/10 transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-black;
-  }
-
-  /* Card styles */
-  .card-spy {
-    @apply p-6 bg-gradient-to-br from-white/5 to-transparent 
-           border border-white/10 rounded-xl
-           hover:border-cyan-400/50 transition-all duration-300;
+    0% { transform: translateY(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
   }
 }
 
 @layer utilities {
-  /* Text shadow glow */
-  .text-glow {
-    text-shadow: 0 0 10px currentColor;
-  }
-
-  .text-glow-cyan {
-    text-shadow: 0 0 10px var(--cyan-400);
-  }
-
-  /* Animation delays */
   .animation-delay-100 { animation-delay: 0.1s; }
   .animation-delay-200 { animation-delay: 0.2s; }
   .animation-delay-300 { animation-delay: 0.3s; }
   .animation-delay-400 { animation-delay: 0.4s; }
   .animation-delay-500 { animation-delay: 0.5s; }
+}
 
   /* Tracking */
   .tracking-widest { letter-spacing: 0.1em; }

@@ -35,13 +35,13 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black"
+        className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-maxx-black"
         exit={{ opacity: 0, transition: { duration: 0.5 } }}
       >
-        {/* Animated grid background */}
+        {/* Subtle grid */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(transparent_1px,_#00F0FF_1px)] bg-[size:50px_50px] opacity-10 animate-pulse" />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_1px,#00F0FF_1px)] bg-[size:50px_50px] opacity-10 animate-pulse" />
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_1px,_#46d5ff_1px)] bg-[size:50px_50px] opacity-[0.04]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_1px,#46d5ff_1px)] bg-[size:50px_50px] opacity-[0.04]" />
         </div>
 
         {/* Central logo */}
@@ -51,20 +51,20 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           transition={{ duration: 0.5 }}
           className="relative z-10"
         >
-          <Shield className="w-24 h-24 text-cyan-400 animate-pulse" />
+          <Shield className="w-16 h-16 text-maxx-cyan" />
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
             animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
           >
-            <div className="w-32 h-32 border-2 border-cyan-400/30 rounded-full" />
+            <div className="w-24 h-24 border border-maxx-cyan/20 rounded-full" />
           </motion.div>
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
             animate={{ rotate: -360 }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
           >
-            <div className="w-40 h-40 border border-cyan-400/20 rounded-full border-dashed" />
+            <div className="w-28 h-28 border border-maxx-border rounded-full border-dashed" />
           </motion.div>
         </motion.div>
 
@@ -73,7 +73,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-8 text-3xl font-bold tracking-[0.5em] text-white uppercase"
+          className="mt-6 text-xl font-heading font-semibold tracking-[0.3em] text-white"
         >
           MUSTANG MAXX
         </motion.h1>
@@ -92,19 +92,19 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
             >
               {(() => {
                 const Icon = stages[stage].icon
-                return <Icon className="w-5 h-5 text-cyan-400" />
+                return <Icon className="w-4 h-4 text-maxx-cyan" />
               })()}
             </motion.div>
           )}
-          <span className="text-cyan-400 font-mono text-sm tracking-wider">
+          <span className="text-maxx-cyan font-mono text-xs tracking-wider">
             {stages[stage].text}
           </span>
         </motion.div>
 
         {/* Progress bar */}
-        <div className="mt-8 w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+        <div className="mt-8 w-48 h-px bg-maxx-border overflow-hidden">
           <motion.div
-            className="h-full bg-cyan-400"
+            className="h-full bg-maxx-cyan"
             initial={{ width: '0%' }}
             animate={{ width: `${((stage + 1) / stages.length) * 100}%` }}
             transition={{ duration: 0.5 }}
@@ -116,7 +116,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="w-2 h-2 rounded-full bg-cyan-400"
+              className="w-1.5 h-1.5 rounded-full bg-maxx-cyan"
               animate={{
                 opacity: [0.3, 1, 0.3],
                 scale: [1, 1.2, 1],
@@ -138,7 +138,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           }}
           transition={{ duration: 0.1, repeat: Infinity }}
           style={{
-            background: 'linear-gradient(transparent 50%, rgba(0, 240, 255, 0.1) 50%)',
+            background: 'linear-gradient(transparent 50%, rgba(70, 213, 255, 0.04) 50%)',
             backgroundSize: '100% 4px',
           }}
         />
