@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "name": "spy-scape-mustang-maXx",
   "version": 2,
   "framework": "nextjs",
   "buildCommand": "npm run build",
