@@ -1,0 +1,55 @@
+{
+  "$schema": "https://cdn.coollabs.io/coolify/schema.json",
+  "name": "mustang-maxx-006",
+  "version": "1.0.0",
+  "description": "SpyScape-inspired Mustang Maxx 006 — Coolify Dockerfile Deployment",
+  "type": "dockerfile",
+  "dockerfile": "Dockerfile",
+  "build": {
+    "buildCommand": "docker build -t mustang-maxx .",
+    "baseDirectory": "/",
+    "publishDirectory": ".next"
+  },
+  "settings": {
+    "isAutoDeployEnabled": true,
+    "branch": "main"
+  },
+  "environment": [
+    {
+      "key": "NODE_ENV",
+      "value": "production"
+    },
+    {
+      "key": "NEXTAUTH_URL",
+      "value": "https://mustangmaxx.your-domain.com",
+      "description": "Set this to your Coolify-assigned domain"
+    },
+    {
+      "key": "NEXTAUTH_SECRET",
+      "value": "",
+      "isSecret": true,
+      "description": "Generate with: openssl rand -hex 32"
+    },
+    {
+      "key": "GOOGLE_CLIENT_ID",
+      "value": "",
+      "isSecret": true
+    },
+    {
+      "key": "GOOGLE_CLIENT_SECRET",
+      "value": "",
+      "isSecret": true
+    }
+  ],
+  "ports": {
+    "exposePort": 3000
+  },
+  "healthCheck": {
+    "enabled": true,
+    "path": "/",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3,
+    "startPeriod": 15
+  }
+}

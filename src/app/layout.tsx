@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SpyScape - Mustang Maxx 006 | Elite Spy Training Experience',
-  description: 'Enter the world of elite espionage training. Master the skills of a secret agent with cutting-edge simulations and interactive challenges.',
-  keywords: ['spy', 'training', 'espionage', 'mission', 'agent', '007', 'mustang maxx'],
-  authors: [{ name: 'Mustang Maxx 006' }],
+  title: 'Mustang Maxx 006 | MACS Digital Media',
+  description: 'Agent 006 of the Yappyverse. Where awareness goes, energy flows.',
+  keywords: ['mustang maxx', 'agent 006', 'yappyverse', 'macs digital media', 'focus'],
+  authors: [{ name: 'MACS Digital Media' }],
   openGraph: {
-    title: 'SpyScape - Elite Spy Training Experience',
-    description: 'Master the skills of a secret agent with cutting-edge simulations.',
+    title: 'Mustang Maxx 006',
+    description: 'Agent 006 of the Yappyverse. Where awareness goes, energy flows.',
     type: 'website',
   },
 };
@@ -20,10 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        <div className="grid-overlay" />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

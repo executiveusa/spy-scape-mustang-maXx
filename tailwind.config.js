@@ -8,49 +8,57 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'spy-black': '#0a0a0a',
-        'spy-dark': '#111111',
-        'spy-gray': '#1a1a1a',
-        'spy-accent': '#00ff88',
-        'spy-gold': '#ffd700',
-        'spy-red': '#ff3333',
-        'spy-blue': '#00aaff',
+        maxx: {
+          black: '#05070a',
+          dark: '#0c0f14',
+          panel: '#111419',
+          border: '#1e2128',
+          cyan: '#46d5ff',
+          'cyan-dim': '#2a8aad',
+          orange: '#ff7a3c',
+          gold: '#ffd700',
+          paper: '#f3e0c0',
+          sepia: '#c4a87c',
+          red: '#ff3366',
+        },
       },
       fontFamily: {
-        'spy': ['Orbitron', 'sans-serif'],
-        'mono': ['Share Tech Mono', 'monospace'],
-      },
-      backgroundImage: {
-        'spy-gradient': 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-        'hologram': 'linear-gradient(180deg, transparent 0%, rgba(0, 255, 136, 0.1) 50%, transparent 100%)',
+        heading: ['Geist', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        comic: ['Comic Neue', 'cursive'],
       },
       animation: {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         'scan-line': 'scan-line 3s linear infinite',
-        'glitch': 'glitch 1s infinite',
-        'hologram-flicker': 'hologram-flicker 4s infinite',
+        'flicker': 'flicker 4s infinite',
+        'typewriter': 'typewriter 2s steps(30) forwards',
       },
       keyframes: {
         'pulse-glow': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(0, 255, 136, 0.3)' },
-          '50%': { boxShadow: '0 0 40px rgba(0, 255, 136, 0.6)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(70, 213, 255, 0.2)' },
+          '50%': { boxShadow: '0 0 40px rgba(70, 213, 255, 0.4)' },
         },
         'scan-line': {
           '0%': { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(100vh)' },
         },
-        'glitch': {
-          '0%, 90%, 100%': { transform: 'translate(0)' },
-          '92%': { transform: 'translate(-2px, 2px)' },
-          '94%': { transform: 'translate(2px, -2px)' },
-          '96%': { transform: 'translate(-2px, -2px)' },
-          '98%': { transform: 'translate(2px, 2px)' },
+        'flicker': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.85' },
+          '70%': { opacity: '0.92' },
         },
-        'hologram-flicker': {
-          '0%, 100%': { opacity: 1 },
-          '50%': { opacity: 0.8 },
-          '70%': { opacity: 0.9 },
+        'typewriter': {
+          'from': { width: '0' },
+          'to': { width: '100%' },
         },
+      },
+      fontSize: {
+        'hero': 'clamp(3rem, 10vw, 6rem)',
+      },
+      borderRadius: {
+        'sm': '4px',
+        'DEFAULT': '8px',
+        'lg': '12px',
       },
     },
   },
