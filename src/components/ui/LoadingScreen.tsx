@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 
 interface LoadingScreenProps {
@@ -12,8 +12,17 @@ const DIGITS = ['0', '0', '6']
 export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [revealed, setRevealed] = useState(0)
   const [exiting, setExiting] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
+    // If reduced motion is preferred, skip animation and complete immediately
+    if (prefersReducedMotion) {
+      setRevealed(3)
+      setExiting(true)
+      setTimeout(onComplete, 100)
+      return
+    }
+
     const t1 = setTimeout(() => setRevealed(1), 500)
     const t2 = setTimeout(() => setRevealed(2), 1000)
     const t3 = setTimeout(() => setRevealed(3), 1500)
@@ -22,7 +31,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
       setTimeout(onComplete, 600)
     }, 2400)
     return () => [t1, t2, t3, t4].forEach(clearTimeout)
-  }, [onComplete])
+  }, [onComplete, prefersReducedMotion])
 
   return (
     <AnimatePresence>
@@ -30,7 +39,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
         <motion.div
           key="loader"
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-maxx-black"
-          exit={{ opacity: 0, transition: { duration: 0.6, ease: 'easeOut' } }}
+          exit={{ opacity: 0, transition: { duration: prefersReducedMotion ? 0.1 : 0.6, ease: 'easeOut' } }}
         >
           {/* Grid */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(70,213,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(70,213,255,0.025)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
