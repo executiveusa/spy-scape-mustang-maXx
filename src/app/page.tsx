@@ -9,6 +9,7 @@ import HeroSection from '@/components/sections/HeroSection'
 import BriefingSection from '@/components/sections/BriefingSection'
 import ArsenalSection from '@/components/sections/ArsenalSection'
 import MustangSection from '@/components/sections/MustangSection'
+import CreatorSection from '@/components/sections/CreatorSection'
 import MissionSection from '@/components/sections/MissionSection'
 import EnterSection from '@/components/sections/EnterSection'
 
@@ -45,6 +46,7 @@ export default function HomePage() {
           <BriefingSection />
           <ArsenalSection />
           <MustangSection />
+          <CreatorSection />
           <MissionSection />
           <EnterSection />
         </>

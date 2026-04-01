@@ -121,15 +121,12 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.55 }}
         >
-          Where awareness goes, energy flows.
-          <br />
-          The Agency requires one thing:{' '}
-          <span className="text-maxx-cyan">Unwavering Focus.</span>
+          Discover the legend behind the machine.
         </motion.p>
 
         {/* CTAs */}
         <motion.div
-          className="flex flex-wrap justify-center gap-3"
+          className="flex flex-wrap justify-center gap-3 mb-12"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.7 }}
@@ -138,7 +135,7 @@ export default function HeroSection() {
             href="#briefing"
             className="px-6 py-2.5 bg-maxx-cyan text-maxx-black font-heading font-semibold text-sm hover:brightness-110 transition-all"
           >
-            BEGIN MISSION
+            BEGIN
           </a>
           <a
             href="#mustang"
@@ -146,6 +143,21 @@ export default function HeroSection() {
           >
             VIEW THE MAXX
           </a>
+        </motion.div>
+
+        {/* Opening exhibition copy — SpyScape style */}
+        <motion.div
+          className="max-w-xl mx-auto border-t border-maxx-border/40 pt-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.9 }}
+        >
+          <p className="text-gray-600 font-mono text-[11px] leading-relaxed text-center">
+            006×MUSTANG MAXX is a digital experience created by MACS Digital Media and produced
+            in collaboration with the Yappyverse network. As you scroll through the content below
+            you will find never before seen artwork, original character profiles, custom animations
+            and a showcase of legendary scenes featuring Mustang MAXX.
+          </p>
         </motion.div>
       </motion.div>
 

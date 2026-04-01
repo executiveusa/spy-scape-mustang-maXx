@@ -2,28 +2,6 @@
 
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { Shield, Eye, Brain } from 'lucide-react'
-
-const dossierItems = [
-  {
-    icon: Eye,
-    title: 'AWARENESS',
-    text: 'The Master taught that the mind is a series of rooms. Direct your awareness deliberately into one room at a time.',
-    from: { x: -40, opacity: 0 },   // slides from left
-  },
-  {
-    icon: Brain,
-    title: 'CONCENTRATION',
-    text: 'Concentration is not a talent — it is a skill. Like any skill, it can be developed through practice.',
-    from: { y: 40, opacity: 0 },     // slides from below
-  },
-  {
-    icon: Shield,
-    title: 'UNWAVERING FOCUS',
-    text: 'Where awareness goes, energy flows. Commit fully to one task, one mission, until it is complete.',
-    from: { x: 40, opacity: 0 },    // slides from right
-  },
-]
 
 export default function BriefingSection() {
   const ref = useRef<HTMLElement>(null)
@@ -61,49 +39,64 @@ export default function BriefingSection() {
           <div className="w-16 h-px bg-maxx-cyan/40" />
         </motion.div>
 
-        {/* Dossier grid — directional reveals */}
-        <div className="grid md:grid-cols-3 gap-4">
-          {dossierItems.map((item, i) => (
-            <motion.div
-              key={item.title}
-              className="card-noir p-6 group hover:border-maxx-cyan/30 transition-colors relative overflow-hidden"
-              initial={item.from}
-              whileInView={{ x: 0, y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ delay: i * 0.12, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {/* Subtle top-left corner accent */}
-              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-maxx-cyan/20 transition-colors group-hover:border-maxx-cyan/50" />
+        {/* Main editorial body — SpyScape Q's Briefing adapted */}
+        <div className="grid lg:grid-cols-2 gap-12 items-start mb-16">
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <p className="text-gray-300 text-base leading-relaxed mb-6">
+              The unforgettable moment in Chapter One in which Mustang MAXX is first activated
+              by MACS — his handler, architect and digital tactician — captivated audiences
+              across every platform and saw the role of MACS begin to grow within the Yappyverse.
+            </p>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              The origins of MAXX go back much further, to the founder of MACS Digital Media,
+              whose vision for a brand built on loyalty, speed and street knowledge sparked
+              the creation of this character. That character was inspired, in part, by the
+              classic American muscle car — a machine already steeped in counterculture myth.
+            </p>
+          </motion.div>
 
-              <item.icon className="w-5 h-5 text-maxx-cyan mb-4" />
-              <h3 className="text-sm font-heading font-semibold text-white tracking-wider mb-3">
-                {item.title}
-              </h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                {item.text}
-              </p>
-            </motion.div>
-          ))}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.65, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <p className="text-gray-500 text-sm leading-relaxed mb-6">
+              His concepts included encrypted comm channels hidden in street-level business
+              tools and data systems which could be used as intelligence networks. Many of
+              these original Agency blueprints form part of the MACS archive.
+            </p>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Another inspiration for the character was a car performance specialist whose
+              knowledge of American muscle mechanics deeply influenced the design philosophy.
+              A reference to this influence appears in early MAXX character sketches and in the
+              Yappyverse lore MACS is sometimes referred to by his field designation.
+            </p>
+          </motion.div>
         </div>
 
-        {/* Pull quote */}
+        {/* Section divider with quote */}
         <motion.blockquote
-          className="mt-12 border-l-2 border-maxx-cyan/30 pl-6 max-w-2xl"
+          className="border-l-2 border-maxx-cyan/30 pl-6 max-w-2xl"
           initial={{ opacity: 0, x: -20 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
         >
           <p className="text-gray-400 text-lg italic leading-relaxed">
-            &ldquo;One thing at a time. One room at a time. This is how the Agent was trained.
-            Not by force — by{' '}
-            <span className="text-maxx-cyan">focused intention</span>.&rdquo;
+            &ldquo;As you scroll through the content below you will find never before seen artwork,
+            original character profiles, custom animations and a showcase of legendary scenes
+            featuring{' '}
+            <span className="text-maxx-cyan not-italic">Mustang MAXX</span>.&rdquo;
           </p>
-          <cite className="block mt-3 text-gray-600 text-xs font-mono tracking-wider not-italic">
-            — THE MASTER&apos;S TEACHING
-          </cite>
         </motion.blockquote>
       </div>
     </section>
   )
+}
 }
