@@ -54,7 +54,7 @@ export default function Navbar() {
 
         <a
           href="#enter"
-          className="px-4 py-1.5 text-xs font-mono tracking-wider text-maxx-cyan border border-maxx-cyan/30 rounded-lg hover:bg-maxx-cyan/10 transition-colors"
+          className="px-4 py-1.5 text-xs font-mono tracking-wider text-maxx-cyan border border-maxx-cyan/30 hover:bg-maxx-cyan/10 transition-colors"
         >
           ENTER AGENCY
         </a>
@@ -62,7 +62,7 @@ export default function Navbar() {
 
       {/* Mobile bottom bar */}
       <motion.nav
-        className="fixed bottom-4 left-4 right-4 z-50 md:hidden flex items-center justify-between px-4 py-3 bg-maxx-black/90 backdrop-blur-md border border-maxx-border rounded-lg"
+        className="fixed bottom-4 left-4 right-4 z-50 md:hidden flex items-center justify-between px-4 py-3 bg-maxx-black/90 backdrop-blur-md border border-maxx-border rounded-sm"
         initial={{ y: 100 }}
         animate={{ y: 0 }}
       >
@@ -114,7 +114,7 @@ export default function Navbar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-5 py-3 text-gray-300 hover:text-maxx-cyan bg-maxx-panel border border-maxx-border rounded-lg transition-colors font-mono text-sm tracking-wider"
+                  className="flex items-center gap-3 px-5 py-3 text-gray-300 hover:text-maxx-cyan border-l-2 border-maxx-border hover:border-maxx-cyan transition-colors font-mono text-sm tracking-wider"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.07 }}

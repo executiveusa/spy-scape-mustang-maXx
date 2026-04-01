@@ -42,6 +42,19 @@ const gadgets = [
   },
 ]
 
+// Diagonal stagger: row 0: x=-20, row 1: y=20, etc.
+const getInitial = (i: number) => {
+  const patterns = [
+    { x: -24, opacity: 0 },
+    { y: 24, opacity: 0 },
+    { x: 24, opacity: 0 },
+    { x: -24, opacity: 0 },
+    { y: 24, opacity: 0 },
+    { x: 24, opacity: 0 },
+  ]
+  return patterns[i % patterns.length]
+}
+
 export default function ArsenalSection() {
   return (
     <section id="arsenal" className="relative py-28 px-5 bg-maxx-dark">
@@ -69,16 +82,36 @@ export default function ArsenalSection() {
           {gadgets.map((g, i) => (
             <motion.div
               key={g.name}
-              className="card-noir p-5 group hover:border-maxx-cyan/20 transition-colors"
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              className="card-noir p-5 group relative overflow-hidden cursor-default"
+              initial={getInitial(i)}
+              whileInView={{ x: 0, y: 0, opacity: 1 }}
               viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.06, duration: 0.4 }}
+              transition={{ delay: i * 0.07, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ borderColor: 'rgba(70,213,255,0.25)' }}
             >
+              {/* Scanline sweep on hover */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-b from-transparent via-maxx-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ backgroundSize: '100% 200%' }}
+              />
+
+              {/* ACTIVE pulse dot */}
+              {g.status === 'ACTIVE' && (
+                <div className="absolute top-3 right-3">
+                  <span className="block w-1.5 h-1.5 rounded-full bg-emerald-400">
+                    <motion.span
+                      className="absolute inset-0 rounded-full bg-emerald-400/60"
+                      animate={{ scale: [1, 2, 1], opacity: [1, 0, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-start justify-between mb-3">
-                <g.icon className="w-5 h-5 text-maxx-cyan" />
+                <g.icon className="w-5 h-5 text-maxx-cyan group-hover:drop-shadow-[0_0_6px_rgba(70,213,255,0.8)] transition-all" />
                 <span
-                  className={`text-[10px] font-mono tracking-wider px-2 py-0.5 rounded ${
+                  className={`text-[10px] font-mono tracking-wider px-2 py-0.5 ${
                     g.status === 'ACTIVE'
                       ? 'text-emerald-400 bg-emerald-400/10'
                       : 'text-maxx-orange bg-maxx-orange/10'

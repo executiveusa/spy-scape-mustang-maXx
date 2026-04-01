@@ -28,7 +28,7 @@ export default function EnterSection() {
             href="https://github.com/executiveusa"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-maxx-cyan text-maxx-black font-heading font-semibold text-sm rounded-lg hover:brightness-110 transition-all"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-maxx-cyan text-maxx-black font-heading font-semibold text-sm hover:brightness-110 transition-all"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

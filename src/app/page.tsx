@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion, useScroll, useSpring } from 'framer-motion'
 import dynamic from 'next/dynamic'
 
 import Navbar from '@/components/ui/Navbar'
@@ -18,6 +18,8 @@ const LoadingScreen = dynamic(() => import('@/components/ui/LoadingScreen'), {
 
 export default function HomePage() {
   const [loading, setLoading] = useState(true)
+  const { scrollYProgress } = useScroll()
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 })
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 2200)
@@ -32,6 +34,12 @@ export default function HomePage() {
 
       {!loading && (
         <>
+          {/* Scroll progress — thin cyan bar on top */}
+          <motion.div
+            className="fixed top-0 left-0 right-0 h-[2px] bg-maxx-cyan z-[100] origin-left"
+            style={{ scaleX }}
+          />
+
           <Navbar />
           <HeroSection />
           <BriefingSection />
