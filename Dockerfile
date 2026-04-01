@@ -17,11 +17,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate NEXTAUTH_SECRET at build time if not provided
-ARG NEXTAUTH_SECRET
-ARG NEXTAUTH_URL=http://localhost:3000
-ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")}
-ENV NEXTAUTH_URL=${NEXTAUTH_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
