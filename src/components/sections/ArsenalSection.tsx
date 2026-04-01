@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useRef } from 'react'
 import { motion } from 'framer-motion'
@@ -45,7 +45,7 @@ const gadgets = [
     icon: Cog,
     name: 'SHIELD PROTOCOL',
     subtitle: 'Bumper Defense Array',
-    desc: 'The shield array extends from the front and rear to protect the vehicle during high-stakes encounters — two iron hands emerging to absorb impact during any confrontation.',
+    desc: 'The shield array extends from the front and rear to protect the vehicle during high-stakes encounters â€” two iron hands emerging to absorb impact during any confrontation.',
     status: 'STANDBY',
   },
   {
@@ -99,7 +99,7 @@ export default function ArsenalSection() {
           <div className="w-16 h-px bg-maxx-cyan/40 mb-8" />
         </motion.div>
 
-        {/* Q's Workshop intro — two-column editorial */}
+        {/* Q's Workshop intro â€” two-column editorial */}
         <div className="grid lg:grid-cols-2 gap-12 items-start mb-8">
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -109,13 +109,13 @@ export default function ArsenalSection() {
           >
             <p className="text-gray-300 text-base leading-relaxed mb-6">
               Since his first activation, Mustang MAXX has brought little known, cutting-edge
-              digital capabilities to a broad audience — often through the tools deployed in
+              digital capabilities to a broad audience â€” often through the tools deployed in
               the Agency. This section explores the wide range of tech upgrades the Mustang
               MAXX has carried right up to the present day.
             </p>
             <p className="text-gray-500 text-sm leading-relaxed">
               In an environment inspired by the Agency&apos;s digital workshop, the legendary
-              Mustang MAXX — used in the operations of Chapter Three — is surrounded by the
+              Mustang MAXX â€” used in the operations of Chapter Three â€” is surrounded by the
               systems and tools that power every mission and every specially commissioned
               campaign for MACS Digital Media clients.
             </p>
@@ -130,7 +130,7 @@ export default function ArsenalSection() {
           >
             <Image
               src="/mustang-maxx-images/ChatGPT%20Image%20May%2012,%202025,%2012_07_22%20AM.png"
-              alt="Agency Workshop — Mustang MAXX"
+              alt="Agency Workshop â€” Mustang MAXX"
               fill
               className="object-cover"
             />
@@ -144,7 +144,7 @@ export default function ArsenalSection() {
         </div>
       </div>
 
-      {/* DRAG TO NAVIGATE horizontal carousel — travelnextlvl.de architecture */}
+      {/* DRAG TO NAVIGATE horizontal carousel â€” travelnextlvl.de architecture */}
       <div className="relative">
         <motion.div
           className="section-container px-5 mb-4 flex items-center gap-3"
@@ -229,64 +229,6 @@ export default function ArsenalSection() {
             </motion.div>
           ))}
           <div className="flex-none w-5" />
-        </div>
-      </div>
-    </section>
-  )
-}
-          <div className="w-16 h-px bg-maxx-cyan/40 mt-4" />
-        </motion.div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {gadgets.map((g, i) => (
-            <motion.div
-              key={g.name}
-              className="card-noir p-5 group relative overflow-hidden cursor-default"
-              initial={getInitial(i)}
-              whileInView={{ x: 0, y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.07, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ borderColor: 'rgba(70,213,255,0.25)' }}
-            >
-              {/* Scanline sweep on hover */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-b from-transparent via-maxx-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ backgroundSize: '100% 200%' }}
-              />
-
-              {/* ACTIVE pulse dot */}
-              {g.status === 'ACTIVE' && (
-                <div className="absolute top-3 right-3">
-                  <span className="block w-1.5 h-1.5 rounded-full bg-emerald-400">
-                    <motion.span
-                      className="absolute inset-0 rounded-full bg-emerald-400/60"
-                      animate={{ scale: [1, 2, 1], opacity: [1, 0, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  </span>
-                </div>
-              )}
-
-              <div className="flex items-start justify-between mb-3">
-                <g.icon className="w-5 h-5 text-maxx-cyan group-hover:drop-shadow-[0_0_6px_rgba(70,213,255,0.8)] transition-all" />
-                <span
-                  className={`text-[10px] font-mono tracking-wider px-2 py-0.5 ${
-                    g.status === 'ACTIVE'
-                      ? 'text-emerald-400 bg-emerald-400/10'
-                      : 'text-maxx-orange bg-maxx-orange/10'
-                  }`}
-                >
-                  {g.status}
-                </span>
-              </div>
-              <h3 className="text-xs font-heading font-semibold text-white tracking-wider mb-2">
-                {g.name}
-              </h3>
-              <p className="text-gray-500 text-xs leading-relaxed">
-                {g.desc}
-              </p>
-            </motion.div>
-          ))}
         </div>
       </div>
     </section>
