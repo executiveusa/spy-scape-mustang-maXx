@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Play, Pause, Maximize2, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play, Pause, Maximize2 } from 'lucide-react'
 
 interface FlipbookImageProps {
   images: string[]
@@ -30,7 +30,6 @@ export default function FlipbookImage({
   const [isLoaded, setIsLoaded] = useState(false)
   const [direction, setDirection] = useState(1)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
 
   const aspectRatios = {
     square: 'aspect-square',
@@ -73,12 +72,10 @@ export default function FlipbookImage({
     onFrameChange?.(currentFrame)
   }, [currentFrame, onFrameChange])
 
-  // Preload images — set isLoaded when at least one succeeds
+  // Preload images
   useEffect(() => {
-    setIsLoaded(false)
-    if (images.length === 0) return
-
-    const loadImage = (src: string): Promise<boolean> => {
+    let loadedCount = 0
+    const loadImage = (src: string) => {
       return new Promise((resolve) => {
         const img = new Image()
         img.onload = () => resolve(true)
@@ -88,15 +85,13 @@ export default function FlipbookImage({
     }
 
     Promise.all(images.map((src) => loadImage(src))).then((results) => {
-      // Set loaded if at least one image succeeded
-      if (results.some((r) => r === true)) {
+      if (results.every((r) => r === true)) {
         setIsLoaded(true)
       }
     })
   }, [images])
 
   const goToFrame = (frame: number) => {
-    if (images.length === 0) return
     const clampedFrame = Math.max(0, Math.min(frame, images.length - 1))
     setCurrentFrame(clampedFrame)
   }
@@ -112,7 +107,7 @@ export default function FlipbookImage({
   }
 
   return (
-    <div ref={containerRef} className={`relative ${aspectRatios[aspectRatio]} ${className}`}>
+    <div className={`relative ${aspectRatios[aspectRatio]} ${className}`}>
       {/* Comic panel border effect */}
       <div className="absolute inset-0 border-4 border-black rounded-lg z-10 pointer-events-none" />
       <div className="absolute inset-0 border-2 border-white/20 rounded-lg z-10 pointer-events-none" />
@@ -120,24 +115,17 @@ export default function FlipbookImage({
       {/* Image container */}
       <div className="absolute inset-0 overflow-hidden rounded-lg">
         <AnimatePresence mode="wait">
-          {images.length > 0 ? (
-            <motion.img
-              key={currentFrame}
-              src={images[currentFrame]}
-              alt={`Frame ${currentFrame + 1}`}
-              className="w-full h-full object-cover"
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.05 }}
-              draggable={false}
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center">
-              <AlertCircle className="w-12 h-12 text-gray-500 mb-3" />
-              <p className="text-gray-400 font-mono text-sm">No images provided</p>
-            </div>
-          )}
+          <motion.img
+            key={currentFrame}
+            src={images[currentFrame]}
+            alt={`Frame ${currentFrame + 1}`}
+            className="w-full h-full object-cover"
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.05 }}
+            draggable={false}
+          />
         </AnimatePresence>
 
         {/* Loading state */}
@@ -236,7 +224,8 @@ export default function FlipbookImage({
               if (elem) {
                 document.exitFullscreen()
               } else {
-                containerRef.current?.requestFullscreen()
+                const container = document.getElementById('flipbook-container')
+                container?.requestFullscreen()
               }
             }}
             className="p-2 bg-black/70 backdrop-blur-sm border border-white/20 rounded-full hover:bg-black/90 transition-colors"

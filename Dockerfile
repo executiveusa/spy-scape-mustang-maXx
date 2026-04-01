@@ -1,33 +1,33 @@
 # Mustang Maxx 006 - Production Dockerfile (Coolify-Ready)
 # =========================================================
-# Uses output:'standalone' in next.config.js — bundles everything
-# into .next/standalone for a minimal Docker image.
-# Security note: 1 residual CVE exists in the node:22-alpine binary
-# itself (upstream Node.js). No patched base image is available.
-# OS packages are updated via 'apk upgrade' as a best-effort mitigation.
+# Workaround: Uses output:'standalone' in next.config.js
+# which bundles everything into .next/standalone for a
+# minimal Docker image that works with Coolify's Dockerfile deployer.
 
 # ---- Stage 1: Install dependencies ----
-FROM node:22-alpine AS deps
-# Upgrade OS packages to patch any available CVEs
-RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --ignore-scripts
 
 # ---- Stage 2: Build the app ----
-FROM node:22-alpine AS builder
-RUN apk upgrade --no-cache
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Generate NEXTAUTH_SECRET at build time if not provided
+ARG NEXTAUTH_SECRET
+ARG NEXTAUTH_URL=http://localhost:3000
+ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")}
+ENV NEXTAUTH_URL=${NEXTAUTH_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
 # ---- Stage 3: Production runner ----
-FROM node:22-alpine AS runner
-RUN apk upgrade --no-cache
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

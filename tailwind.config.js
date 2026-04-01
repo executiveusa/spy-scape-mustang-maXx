@@ -21,14 +21,6 @@ module.exports = {
           sepia: '#c4a87c',
           red: '#ff3366',
         },
-        // Legacy spy-* aliases (redirect to maxx-*) for backward compatibility
-        'spy-black': '#05070a',
-        'spy-gray': '#0c0f14',
-        'spy-accent': '#46d5ff',
-        'spy-cyan': '#46d5ff',
-        'spy-gold': '#ffd700',
-        'spy-red': '#ff3366',
-        'spy-blue': '#46d5ff',
       },
       fontFamily: {
         heading: ['Geist', 'system-ui', 'sans-serif'],

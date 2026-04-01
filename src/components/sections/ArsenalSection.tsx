@@ -4,7 +4,6 @@ import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Cpu, Radio, Zap, Radar, Lock, Cog, Shield, Crosshair, Eye, Layers } from 'lucide-react'
 import Image from 'next/image'
-import SpotlightCard from '@/components/ui/SpotlightCard'
 
 const gadgets = [
   {
@@ -181,12 +180,9 @@ export default function ArsenalSection() {
           }}
         >
           {gadgets.map((g, i) => (
-            <SpotlightCard
-              key={g.name}
-              className="flex-none w-72 md:w-80 group"
-            >
             <motion.div
-              className="w-full card-noir p-5 relative overflow-hidden"
+              key={g.name}
+              className="flex-none w-72 md:w-80 card-noir p-5 group relative overflow-hidden"
               style={{ scrollSnapAlign: 'start' }}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -231,7 +227,6 @@ export default function ArsenalSection() {
                 {g.desc}
               </p>
             </motion.div>
-            </SpotlightCard>
           ))}
           <div className="flex-none w-5" />
         </div>

@@ -18,6 +18,27 @@
     {
       "key": "NODE_ENV",
       "value": "production"
+    },
+    {
+      "key": "NEXTAUTH_URL",
+      "value": "https://mustangmaxx.your-domain.com",
+      "description": "Set this to your Coolify-assigned domain"
+    },
+    {
+      "key": "NEXTAUTH_SECRET",
+      "value": "",
+      "isSecret": true,
+      "description": "Generate with: openssl rand -hex 32"
+    },
+    {
+      "key": "GOOGLE_CLIENT_ID",
+      "value": "",
+      "isSecret": true
+    },
+    {
+      "key": "GOOGLE_CLIENT_SECRET",
+      "value": "",
+      "isSecret": true
     }
   ],
   "ports": {

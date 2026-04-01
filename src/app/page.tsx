@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { AnimatePresence, motion, useScroll, useSpring } from 'framer-motion'
 import dynamic from 'next/dynamic'
 
@@ -12,12 +12,8 @@ import MustangSection from '@/components/sections/MustangSection'
 import CreatorSection from '@/components/sections/CreatorSection'
 import MissionSection from '@/components/sections/MissionSection'
 import EnterSection from '@/components/sections/EnterSection'
-import KineticMarquee from '@/components/ui/KineticMarquee'
 
 const LoadingScreen = dynamic(() => import('@/components/ui/LoadingScreen'), {
-  ssr: false,
-})
-const EngineSound = dynamic(() => import('@/components/ui/EngineSound'), {
   ssr: false,
 })
 
@@ -30,37 +26,6 @@ export default function HomePage() {
     const t = setTimeout(() => setLoading(false), 2200)
     return () => clearTimeout(t)
   }, [])
-
-  // Color shift — update --page-bg CSS var as sections enter viewport
-  useEffect(() => {
-    if (loading) return
-    const sections = [
-      { id: 'hero',     bg: '#05070a' },
-      { id: 'briefing', bg: '#04090b' },
-      { id: 'arsenal',  bg: '#05070a' },
-      { id: 'mustang',  bg: '#0a0704' },
-      { id: 'creator',  bg: '#040b0a' },
-      { id: 'mission',  bg: '#06050b' },
-      { id: 'enter',    bg: '#08060a' },
-    ]
-    const observers: IntersectionObserver[] = []
-    sections.forEach(({ id, bg }) => {
-      const el = document.getElementById(id)
-      if (!el) return
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            document.documentElement.style.setProperty('--page-bg', bg)
-            document.body.style.backgroundColor = bg
-          }
-        },
-        { threshold: 0.25 }
-      )
-      obs.observe(el)
-      observers.push(obs)
-    })
-    return () => observers.forEach((o) => o.disconnect())
-  }, [loading])
 
   return (
     <main className="min-h-screen bg-maxx-black">
@@ -76,20 +41,13 @@ export default function HomePage() {
             style={{ scaleX }}
           />
 
-          <EngineSound />
           <Navbar />
           <HeroSection />
-          <KineticMarquee text="AGENT 006 • MACS DIGITAL MEDIA • YAPPYVERSE • CLASSIFIED • EYES ONLY •" />
           <BriefingSection />
-          <KineticMarquee text="THE BRIEFING • Q SPEAKS • MISSION PARAMETERS • CLEARANCE LEVEL 6 •" />
           <ArsenalSection />
-          <KineticMarquee text="Q WORKSHOP • CUSTOM TECH • CLASSIFIED HARDWARE • ACTIVE DEPLOYMENT •" />
           <MustangSection />
-          <KineticMarquee text="THE MUSTANG MAXX • ELEANOR 2056 • QUANTUM V12 • 2056 HP • 1.4s 0-60 •" />
           <CreatorSection />
-          <KineticMarquee text="MACS DIGITAL MEDIA • STACY MACS • CREATOR • YAPPYVERSE ARCHITECT •" />
           <MissionSection />
-          <KineticMarquee text="NIGHT RUN • CHAPTER SEVEN • OPERATION ELEANOR • MISSION COMPLETE •" />
           <EnterSection />
         </>
       )}
