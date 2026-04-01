@@ -77,9 +77,5 @@
   .animation-delay-300 { animation-delay: 0.3s; }
   .animation-delay-400 { animation-delay: 0.4s; }
   .animation-delay-500 { animation-delay: 0.5s; }
-}
-
-  /* Tracking */
-  .tracking-widest { letter-spacing: 0.1em; }
   .tracking-widest-xl { letter-spacing: 0.2em; }
 }
