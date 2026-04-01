@@ -107,7 +107,7 @@ export default function HeroSection() {
         {/* MUSTANG — clips in from bottom + scramble */}
         <div className="overflow-hidden mb-1">
           <motion.h1
-            className="text-hero font-heading font-bold text-white tracking-tight leading-none font-mono"
+            className="text-hero font-mono font-bold text-white tracking-tight leading-none"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ duration: 0.65, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
@@ -123,7 +123,7 @@ export default function HeroSection() {
             animate={{ y: 0 }}
             transition={{ duration: 0.65, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="text-hero font-heading font-bold text-maxx-cyan text-glow-cyan tracking-tight leading-none font-mono">
+            <span className="text-hero font-mono font-bold text-maxx-cyan text-glow-cyan tracking-tight leading-none">
               {maxx.display}
             </span>
           </motion.div>
