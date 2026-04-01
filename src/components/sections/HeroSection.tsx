@@ -1,12 +1,27 @@
 'use client'
 
-import { useRef } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRef, useEffect } from 'react'
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'
+import { useScramble } from '@/hooks/useScramble'
 
 export default function HeroSection() {
   const ref = useRef<HTMLElement>(null)
+  const prefersReduced = useReducedMotion()
+  const mustang = useScramble('MUSTANG', prefersReduced ? 0 : 900)
+  const maxx = useScramble('MAXX', prefersReduced ? 0 : 700)
+
+  // Trigger scramble once on mount (after a short delay for drama)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      mustang.trigger()
+      setTimeout(() => maxx.trigger(), 200)
+    }, 800)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end start'],
@@ -32,7 +47,7 @@ export default function HeroSection() {
         style={{ y: bgY, scale: bgScale }}
       >
         <Image
-          src="/mustang-maxx-images/ChatGPT%20Image%20May%209,%202025,%2011_08_35%20PM.png"
+          src="/mustang-maxx-images/hero-v2.png"
           alt="Agent 006 — Mustang Maxx"
           fill
           className="object-cover object-center"
@@ -89,27 +104,27 @@ export default function HeroSection() {
           <span className="h-px w-8 bg-maxx-cyan/40" />
         </motion.div>
 
-        {/* MUSTANG — clips in from bottom */}
+        {/* MUSTANG — clips in from bottom + scramble */}
         <div className="overflow-hidden mb-1">
           <motion.h1
-            className="text-hero font-heading font-bold text-white tracking-tight leading-none"
+            className="text-hero font-heading font-bold text-white tracking-tight leading-none font-mono"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ duration: 0.65, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
-            MUSTANG
+            {mustang.display}
           </motion.h1>
         </div>
 
-        {/* MAXX — clips in with glow */}
+        {/* MAXX — clips in with glow + scramble */}
         <div className="overflow-hidden mb-8">
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ duration: 0.65, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="text-hero font-heading font-bold text-maxx-cyan text-glow-cyan tracking-tight leading-none">
-              MAXX
+            <span className="text-hero font-heading font-bold text-maxx-cyan text-glow-cyan tracking-tight leading-none font-mono">
+              {maxx.display}
             </span>
           </motion.div>
         </div>
