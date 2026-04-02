@@ -27,9 +27,8 @@ export default function HeroSection() {
     offset: ['start start', 'end start'],
   })
 
-  // Deeper parallax — background moves 40% of scroll distance
-  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '40%'])
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.08])
+  // Subtle parallax — background drifts 20% on scroll (no scale to avoid crop)
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
   // Content fades and blurs on scroll
   const contentOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0])
   const contentY = useTransform(scrollYProgress, [0, 0.5], [0, -60])
@@ -46,20 +45,20 @@ export default function HeroSection() {
       {/* Parallax background */}
       <motion.div
         className="absolute inset-0 will-change-transform"
-        style={{ y: bgY, scale: bgScale }}
+        style={{ y: bgY }}
       >
         <Image
           src="/mustang-maxx-images/hero-v2.png"
           alt="Agent 006 — Mustang Maxx"
           fill
-          className="object-cover object-center"
+          className="object-contain object-center"
           priority
         />
-        {/* Layered vignette — noir depth */}
-        <div className="absolute inset-0 bg-gradient-to-b from-maxx-black/70 via-maxx-black/20 to-maxx-black" />
-        <div className="absolute inset-0 bg-gradient-to-r from-maxx-black/60 via-transparent to-maxx-black/60" />
-        {/* Radial vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(5,7,10,0.8)_100%)]" />
+        {/* Layered vignette — only on edges, light so comic shows fully */}
+        <div className="absolute inset-0 bg-gradient-to-b from-maxx-black/40 via-transparent to-maxx-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-maxx-black/70 via-transparent to-maxx-black/70" />
+        {/* Outer edge vignette only */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_90%_at_center,transparent_60%,rgba(5,7,10,0.9)_100%)]" />
       </motion.div>
 
       {/* Scan line sweep — animates once on load */}
