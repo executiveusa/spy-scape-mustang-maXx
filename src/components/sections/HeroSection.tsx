@@ -40,7 +40,8 @@ export default function HeroSection() {
     <section
       ref={ref}
       id="hero"
-      className="relative h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      style={{ aspectRatio: 'auto' }}
     >
       {/* Parallax background */}
       <motion.div
