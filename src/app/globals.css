@@ -53,8 +53,37 @@
 
   .card-noir {
     @apply bg-maxx-panel border border-maxx-border;
+
     border-radius: 12px;
   }
+
+  .spy-card {
+    @apply bg-maxx-panel border border-maxx-border;
+
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .btn-spy-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-maxx-cyan text-maxx-black font-mono text-sm font-bold tracking-wider;
+
+    border-radius: 4px;
+    transition: opacity 0.15s ease;
+  }
+
+  .btn-spy-primary:hover { opacity: 0.85; }
+  .btn-spy-primary:focus-visible { outline: 2px solid #46d5ff; outline-offset: 2px; }
+
+  .btn-spy-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-maxx-cyan text-maxx-cyan font-mono text-sm tracking-wider;
+
+    border-radius: 4px;
+    background: transparent;
+    transition: background-color 0.15s ease;
+  }
+
+  .btn-spy-secondary:hover { background-color: rgba(70, 213, 255, 0.08); }
+  .btn-spy-secondary:focus-visible { outline: 2px solid #46d5ff; outline-offset: 2px; }
 
   .scan-line {
     width: 100%;

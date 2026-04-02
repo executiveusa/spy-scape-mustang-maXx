@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Cpu, Radio, Zap, Radar, Lock, Cog, Shield, Crosshair, Eye, Layers } from 'lucide-react'
 import Image from 'next/image'
@@ -46,7 +46,7 @@ const gadgets = [
     icon: Cog,
     name: 'SHIELD PROTOCOL',
     subtitle: 'Bumper Defense Array',
-    desc: 'The shield array extends from the front and rear to protect the vehicle during high-stakes encounters â€” two iron hands emerging to absorb impact during any confrontation.',
+    desc: 'The shield array extends from the front and rear to protect the vehicle during high-stakes encounters — two iron hands emerging to absorb impact during any confrontation.',
     status: 'STANDBY',
   },
   {
@@ -81,6 +81,15 @@ const gadgets = [
 
 export default function ArsenalSection() {
   const carouselRef = useRef<HTMLDivElement>(null)
+  const moveHandlerRef = useRef<((e: MouseEvent) => void) | null>(null)
+  const upHandlerRef = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (moveHandlerRef.current) window.removeEventListener('mousemove', moveHandlerRef.current)
+      if (upHandlerRef.current) window.removeEventListener('mouseup', upHandlerRef.current)
+    }
+  }, [])
 
   return (
     <section id="arsenal" className="relative py-28 bg-maxx-dark">
@@ -110,13 +119,13 @@ export default function ArsenalSection() {
           >
             <p className="text-gray-300 text-base leading-relaxed mb-6">
               Since his first activation, Mustang MAXX has brought little known, cutting-edge
-              digital capabilities to a broad audience â€” often through the tools deployed in
+              digital capabilities to a broad audience — often through the tools deployed in
               the Agency. This section explores the wide range of tech upgrades the Mustang
               MAXX has carried right up to the present day.
             </p>
             <p className="text-gray-500 text-sm leading-relaxed">
               In an environment inspired by the Agency&apos;s digital workshop, the legendary
-              Mustang MAXX â€” used in the operations of Chapter Three â€” is surrounded by the
+              Mustang MAXX — used in the operations of Chapter Three — is surrounded by the
               systems and tools that power every mission and every specially commissioned
               campaign for MACS Digital Media clients.
             </p>
@@ -175,7 +184,11 @@ export default function ArsenalSection() {
             const onUp = () => {
               window.removeEventListener('mousemove', onMove)
               window.removeEventListener('mouseup', onUp)
+              moveHandlerRef.current = null
+              upHandlerRef.current = null
             }
+            moveHandlerRef.current = onMove
+            upHandlerRef.current = onUp
             window.addEventListener('mousemove', onMove)
             window.addEventListener('mouseup', onUp)
           }}

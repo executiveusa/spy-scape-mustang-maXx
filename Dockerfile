@@ -25,6 +25,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
+# Fail fast: verify standalone artifact was produced
+RUN test -f .next/standalone/server.js || \
+  (echo "ERROR: .next/standalone/server.js not found. Ensure next.config.js has output: 'standalone'" && exit 1)
+
 # ---- Stage 3: Production runner ----
 FROM node:22-alpine AS runner
 RUN apk upgrade --no-cache

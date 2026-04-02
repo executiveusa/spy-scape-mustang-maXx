@@ -14,9 +14,7 @@ import MissionSection from '@/components/sections/MissionSection'
 import EnterSection from '@/components/sections/EnterSection'
 import KineticMarquee from '@/components/ui/KineticMarquee'
 
-const LoadingScreen = dynamic(() => import('@/components/ui/LoadingScreen'), {
-  ssr: false,
-})
+const LoadingScreen = dynamic(() => import('@/components/ui/LoadingScreen'))
 const EngineSound = dynamic(() => import('@/components/ui/EngineSound'), {
   ssr: false,
 })
@@ -25,11 +23,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const { scrollYProgress } = useScroll()
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 })
-
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 2200)
-    return () => clearTimeout(t)
-  }, [])
 
   // Color shift — update --page-bg CSS var as sections enter viewport
   useEffect(() => {
@@ -68,31 +61,27 @@ export default function HomePage() {
         {loading && <LoadingScreen onComplete={() => setLoading(false)} />}
       </AnimatePresence>
 
-      {!loading && (
-        <>
-          {/* Scroll progress — thin cyan bar on top */}
-          <motion.div
-            className="fixed top-0 left-0 right-0 h-[2px] bg-maxx-cyan z-[100] origin-left"
-            style={{ scaleX }}
-          />
+      {/* Scroll progress — thin cyan bar on top */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-[2px] bg-maxx-cyan z-[100] origin-left"
+        style={{ scaleX }}
+      />
 
-          <EngineSound />
-          <Navbar />
-          <HeroSection />
-          <KineticMarquee text="AGENT 006 • MACS DIGITAL MEDIA • YAPPYVERSE • CLASSIFIED • EYES ONLY •" />
-          <BriefingSection />
-          <KineticMarquee text="THE BRIEFING • Q SPEAKS • MISSION PARAMETERS • CLEARANCE LEVEL 6 •" />
-          <ArsenalSection />
-          <KineticMarquee text="Q WORKSHOP • CUSTOM TECH • CLASSIFIED HARDWARE • ACTIVE DEPLOYMENT •" />
-          <MustangSection />
-          <KineticMarquee text="THE MUSTANG MAXX • ELEANOR 2056 • QUANTUM V12 • 2056 HP • 1.4s 0-60 •" />
-          <CreatorSection />
-          <KineticMarquee text="MACS DIGITAL MEDIA • STACY MACS • CREATOR • YAPPYVERSE ARCHITECT •" />
-          <MissionSection />
-          <KineticMarquee text="NIGHT RUN • CHAPTER SEVEN • OPERATION ELEANOR • MISSION COMPLETE •" />
-          <EnterSection />
-        </>
-      )}
+      <EngineSound />
+      <Navbar />
+      <HeroSection />
+      <KineticMarquee text="AGENT 006 • MACS DIGITAL MEDIA • YAPPYVERSE • CLASSIFIED • EYES ONLY •" />
+      <BriefingSection />
+      <KineticMarquee text="THE BRIEFING • Q SPEAKS • MISSION PARAMETERS • CLEARANCE LEVEL 6 •" />
+      <ArsenalSection />
+      <KineticMarquee text="Q WORKSHOP • CUSTOM TECH • CLASSIFIED HARDWARE • ACTIVE DEPLOYMENT •" />
+      <MustangSection />
+      <KineticMarquee text="THE MUSTANG MAXX • ELEANOR 2056 • QUANTUM V12 • 2056 HP • 1.4s 0-60 •" />
+      <CreatorSection />
+      <KineticMarquee text="MACS DIGITAL MEDIA • STACY MACS • CREATOR • YAPPYVERSE ARCHITECT •" />
+      <MissionSection />
+      <KineticMarquee text="NIGHT RUN • CHAPTER SEVEN • OPERATION ELEANOR • MISSION COMPLETE •" />
+      <EnterSection />
     </main>
   )
 }

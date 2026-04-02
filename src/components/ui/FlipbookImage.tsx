@@ -68,10 +68,12 @@ export default function FlipbookImage({
     }
   }, [isPlaying, fps, animate, images.length])
 
-  // Notify frame change
+  // Notify frame change — stable ref avoids re-renders when parent passes inline handler
+  const onFrameChangeRef = useRef(onFrameChange)
+  useEffect(() => { onFrameChangeRef.current = onFrameChange }, [onFrameChange])
   useEffect(() => {
-    onFrameChange?.(currentFrame)
-  }, [currentFrame, onFrameChange])
+    onFrameChangeRef.current?.(currentFrame)
+  }, [currentFrame])
 
   // Preload images — set isLoaded when at least one succeeds
   useEffect(() => {

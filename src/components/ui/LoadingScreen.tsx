@@ -26,11 +26,12 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
     const t1 = setTimeout(() => setRevealed(1), 500)
     const t2 = setTimeout(() => setRevealed(2), 1000)
     const t3 = setTimeout(() => setRevealed(3), 1500)
+    let t5: ReturnType<typeof setTimeout>
     const t4 = setTimeout(() => {
       setExiting(true)
-      setTimeout(onComplete, 600)
+      t5 = setTimeout(onComplete, 600)
     }, 2400)
-    return () => [t1, t2, t3, t4].forEach(clearTimeout)
+    return () => [t1, t2, t3, t4, t5].forEach(clearTimeout)
   }, [onComplete, prefersReducedMotion])
 
   return (

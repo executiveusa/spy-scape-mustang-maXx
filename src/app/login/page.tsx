@@ -35,7 +35,7 @@ export default function LoginPage() {
 
         <p className="text-gray-500 text-sm leading-relaxed mb-10">
           Agent portal access is managed through the IronClaw backend system.
-          Full authentication arriving in v2.
+          Full authentication is available — connect your backend to enable.
         </p>
 
         <Link

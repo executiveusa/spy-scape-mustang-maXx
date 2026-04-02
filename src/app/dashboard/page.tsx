@@ -131,7 +131,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#050810] text-white">
       {/* ─── Top Bar ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-[#050810]/90 backdrop-blur-xl border-b border-white/5">
+      <header className="sticky top-0 z-50 bg-[#050810]/90 border-b border-white/5">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2 group">
@@ -145,6 +145,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleRefresh}
+              aria-label="Refresh"
               className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
               title="Refresh"
             >
@@ -152,6 +153,7 @@ export default function DashboardPage() {
             </button>
             <Link
               href="/"
+              aria-label="Back to Site"
               className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
               title="Back to Site"
             >
@@ -305,22 +307,36 @@ export default function DashboardPage() {
               <div className="mt-8">
                 <h3 className="font-mono text-sm text-gray-500 tracking-wider mb-4">QUICK ACTIONS</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {/* Navigation items — use Link */}
                   {[
                     { label: 'View Site', href: '/', icon: Globe },
                     { label: 'Agent Login', href: '/login', icon: Lock },
-                    { label: 'Settings', href: '#', icon: Settings },
-                    { label: 'System Health', href: '#', icon: BarChart3, action: () => setActiveTab('systems') },
                   ].map((action) => (
                     <Link
                       key={action.label}
                       href={action.href}
-                      onClick={action.action ? (e) => { e.preventDefault(); action.action!(); } : undefined}
                       className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-cyan-400/20 hover:bg-cyan-400/5 transition-all group"
                     >
                       <action.icon className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" />
                       <span className="text-sm font-mono">{action.label}</span>
                     </Link>
                   ))}
+                  {/* Non-navigation items — use button */}
+                  <button
+                    className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-cyan-400/20 hover:bg-cyan-400/5 transition-all group text-left"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    <Settings className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                    <span className="text-sm font-mono">Settings</span>
+                  </button>
+                  <button
+                    className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-cyan-400/20 hover:bg-cyan-400/5 transition-all group text-left"
+                    onClick={() => setActiveTab('systems')}
+                  >
+                    <BarChart3 className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                    <span className="text-sm font-mono">System Health</span>
+                  </button>
                 </div>
               </div>
             </motion.div>

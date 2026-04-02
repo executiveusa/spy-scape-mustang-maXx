@@ -34,6 +34,8 @@ export default function HeroSection() {
   const contentOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0])
   const contentY = useTransform(scrollYProgress, [0, 0.5], [0, -60])
   const contentBlur = useTransform(scrollYProgress, [0.1, 0.45], [0, 8])
+  // Must be top-level — cannot call useTransform inside style prop
+  const contentBlurFilter = useTransform(contentBlur, (v) => `blur(${v}px)`)
 
   return (
     <section
@@ -87,7 +89,7 @@ export default function HeroSection() {
         style={{
           opacity: contentOpacity,
           y: contentY,
-          filter: useTransform(contentBlur, (v) => `blur(${v}px)`),
+          filter: contentBlurFilter,
         }}
       >
         {/* Agent classification */}
