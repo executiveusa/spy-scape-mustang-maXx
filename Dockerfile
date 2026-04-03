@@ -1,21 +1,23 @@
-# Mustang Maxx 006 - Production Dockerfile (Coolify-Ready)
-# =========================================================
-# Uses output:'standalone' in next.config.js — bundles everything
-# into .next/standalone for a minimal Docker image.
+# Mustang Maxx 006 — Production Dockerfile
+# ==========================================
+# Multi-platform (linux/amd64 + linux/arm64)
+# Next.js output:'standalone' for minimal image size
+# Coolify-ready: healthcheck, non-root user, proper signals
+#
 # Security note: 1 residual CVE exists in the node:22-alpine binary
 # itself (upstream Node.js). No patched base image is available.
-# OS packages are updated via 'apk upgrade' as a best-effort mitigation.
+# OS packages are updated via 'apk upgrade' as best-effort mitigation.
 
 # ---- Stage 1: Install dependencies ----
-FROM node:22-alpine AS deps
-# Upgrade OS packages to patch any available CVEs
+ARG NODE_VERSION=22
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS deps
 RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --ignore-scripts
 
 # ---- Stage 2: Build the app ----
-FROM node:22-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS builder
 RUN apk upgrade --no-cache
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -27,11 +29,15 @@ RUN npm run build
 
 # Fail fast: verify standalone artifact was produced
 RUN test -f .next/standalone/server.js || \
-  (echo "ERROR: .next/standalone/server.js not found. Ensure next.config.js has output: 'standalone'" && exit 1)
+  (echo "ERROR: .next/standalone/server.js not found. Ensure next.config.js has output:'standalone'" && exit 1)
 
 # ---- Stage 3: Production runner ----
-FROM node:22-alpine AS runner
-RUN apk upgrade --no-cache
+FROM node:${NODE_VERSION}-alpine AS runner
+LABEL org.opencontainers.image.title="Mustang Maxx 006" \
+      org.opencontainers.image.description="SpyScape-inspired scroll experience" \
+      org.opencontainers.image.source="https://github.com/executiveusa/spy-scape-mustang-maXx"
+
+RUN apk upgrade --no-cache && apk add --no-cache wget
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -54,8 +60,8 @@ USER nextjs
 
 EXPOSE 3000
 
-# Health check for Coolify monitoring
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD node -e "const h=require('http');h.get('http://localhost:3000',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
+# Use wget (always available in Alpine) rather than inline Node.js
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/ || exit 1
 
 CMD ["node", "server.js"]
