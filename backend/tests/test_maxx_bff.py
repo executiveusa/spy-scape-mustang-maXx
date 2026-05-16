@@ -146,7 +146,10 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertIn(task["status"], {"queued", "completed", "blocked", "attention"})
         self.assertEqual(len(task["workspace_files"]), 2)
         self.assertIn("hermes_dispatch", task)
-        self.assertIn(task["hermes_dispatch"]["status"], {"provider-missing", "completed", "dispatch-failed", "dispatch-empty", "vendor-missing"})
+        self.assertIn(
+            task["hermes_dispatch"]["status"],
+            {"provider-missing", "completed", "dispatch-failed", "dispatch-empty", "dispatch-deferred", "vendor-missing"},
+        )
         for file_path in task["workspace_files"]:
             self.assertTrue(Path(file_path).exists())
 

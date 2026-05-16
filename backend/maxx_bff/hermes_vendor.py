@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import queue
 import sys
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -16,6 +18,7 @@ DEFAULT_VENDOR_PATH = Path(
 ).resolve()
 DEFAULT_PROVIDER = os.environ.get("MAXX_HERMES_PROVIDER", "openrouter")
 DEFAULT_MODEL = os.environ.get("MAXX_HERMES_MODEL", "openrouter/owl-alpha")
+DEFAULT_DISPATCH_TIMEOUT_SECONDS = float(os.environ.get("MAXX_HERMES_SYNC_TIMEOUT_SECONDS", "20"))
 DEFAULT_RUNTIME_HOME = Path(
     os.environ.get(
         "MAXX_HERMES_HOME",
@@ -311,6 +314,40 @@ def execute_lead_task(profile_name: str, task_id: str, payload: dict[str, object
             ],
         )
 
+    result_queue: queue.Queue[HermesDispatchResult] = queue.Queue(maxsize=1)
+
+    def run_dispatch() -> None:
+        result_queue.put(_execute_lead_task_now(profile_name, task_id, payload))
+
+    thread = threading.Thread(target=run_dispatch, name=f"maxx-hermes-{task_id}", daemon=True)
+    thread.start()
+    thread.join(timeout=DEFAULT_DISPATCH_TIMEOUT_SECONDS)
+
+    if thread.is_alive():
+        return HermesDispatchResult(
+            status="dispatch-deferred",
+            provider=DEFAULT_PROVIDER,
+            model=DEFAULT_MODEL,
+            configured=True,
+            notes=[
+                "Hermes accepted the Lead Desk task, but the model run exceeded the synchronous response budget.",
+                "MAXX stored the task and returned it for operator review instead of blocking the intake request.",
+            ],
+        )
+
+    try:
+        return result_queue.get_nowait()
+    except queue.Empty:
+        return HermesDispatchResult(
+            status="dispatch-empty",
+            provider=DEFAULT_PROVIDER,
+            model=DEFAULT_MODEL,
+            configured=True,
+            notes=["Hermes dispatch ended without returning a result to MAXX."],
+        )
+
+
+def _execute_lead_task_now(profile_name: str, task_id: str, payload: dict[str, object]) -> HermesDispatchResult:
     try:
         AIAgent = load_agent_class()
         with hermes_profile_env(), hermes_execution_env(), hermes_workspace(profile_name):

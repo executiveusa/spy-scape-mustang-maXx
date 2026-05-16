@@ -307,7 +307,7 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
     }
     dispatch = hermes_vendor.execute_lead_task(client.hermes.profile_name, task_id, preview_payload)
     task_status = "completed" if dispatch.status == "completed" else "attention"
-    if dispatch.status == "provider-missing":
+    if dispatch.status in {"provider-missing", "dispatch-deferred"}:
         task_status = "queued"
     elif dispatch.status in {"dispatch-empty", "dispatch-failed", "vendor-missing"}:
         task_status = "blocked"
