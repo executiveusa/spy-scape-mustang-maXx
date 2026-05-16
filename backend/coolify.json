@@ -1,0 +1,66 @@
+{
+  "$schema": "https://cdn.coollabs.io/coolify/schema.json",
+  "name": "agent-maxx-bff",
+  "version": "1.0.0",
+  "description": "Private Agent MAXX FastAPI control plane for Hermes-backed Lead Desk execution",
+  "type": "dockerfile",
+  "dockerfile": "backend/Dockerfile",
+  "build": {
+    "baseDirectory": "/"
+  },
+  "settings": {
+    "isAutoDeployEnabled": false,
+    "branch": "feature/v2-clean"
+  },
+  "environment": [
+    {
+      "key": "MAXX_ENV",
+      "value": "production"
+    },
+    {
+      "key": "MAXX_DATA_DIR",
+      "value": "/data/maxx"
+    },
+    {
+      "key": "MAXX_HERMES_HOME",
+      "value": "/runtime/hermes"
+    },
+    {
+      "key": "MAXX_HERMES_VENDOR_PATH",
+      "value": "/opt/hermes-agent"
+    },
+    {
+      "key": "MAXX_HERMES_PROVIDER",
+      "value": "openrouter"
+    },
+    {
+      "key": "MAXX_HERMES_MODEL",
+      "value": "openrouter/owl-alpha"
+    }
+  ],
+  "ports": {
+    "exposePort": 8010
+  },
+  "healthCheck": {
+    "enabled": true,
+    "path": "/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3,
+    "startPeriod": 20
+  },
+  "volumes": [
+    {
+      "source": "agent-maxx-data",
+      "target": "/data/maxx"
+    },
+    {
+      "source": "agent-maxx-hermes-runtime",
+      "target": "/runtime/hermes"
+    },
+    {
+      "source": "agent-maxx-hermes-vendor",
+      "target": "/opt/hermes-agent"
+    }
+  ]
+}
