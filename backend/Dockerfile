@@ -24,7 +24,7 @@ COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN git clone --depth=1 --branch "$HERMES_AGENT_REF" "$HERMES_AGENT_REPO" /opt/hermes-agent && \
-    pip install --no-cache-dir -r /opt/hermes-agent/requirements.txt
+    pip install --no-cache-dir -e /opt/hermes-agent
 
 COPY maxx_bff ./maxx_bff
 
