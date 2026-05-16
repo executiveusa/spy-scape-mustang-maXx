@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "description": "Private Agent MAXX FastAPI control plane for Hermes-backed Lead Desk execution",
   "type": "dockerfile",
-  "dockerfile": "backend/Dockerfile",
+  "dockerfile": "Dockerfile",
   "build": {
-    "baseDirectory": "/"
+    "baseDirectory": "/backend"
   },
   "settings": {
     "isAutoDeployEnabled": false,
