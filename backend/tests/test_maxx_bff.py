@@ -23,6 +23,7 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.data_dir = Path(self.temp_dir.name) / "data"
         self.hermes_home = Path(self.temp_dir.name) / "hermes-root"
 
+        os.environ.pop("MAXX_BFF_SHARED_SECRET", None)
         os.environ["MAXX_DATA_DIR"] = str(self.data_dir)
         os.environ["MAXX_HERMES_HOME"] = str(self.hermes_home)
         os.environ["MAXX_HERMES_VENDOR_PATH"] = str(HERMES_VENDOR_PATH)
