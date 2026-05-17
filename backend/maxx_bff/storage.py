@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
-from typing import TypeVar
+from typing import Iterator, TypeVar
 
 from .models import (
     BusinessIdentity,
@@ -31,6 +33,7 @@ CLIENTS_PATH = DATA_ROOT / "clients.json"
 WORKFLOWS_PATH = DATA_ROOT / "workflow_packs.json"
 TASKS_PATH = DATA_ROOT / "lead_desk_tasks.json"
 HEARTBEATS_PATH = DATA_ROOT / "heartbeats.json"
+DB_PATH = DATA_ROOT / "maxx.db"
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -47,6 +50,135 @@ def _read_json(path: Path, default: T) -> T:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return default
+
+
+@contextmanager
+def _connect() -> Iterator[sqlite3.Connection]:
+    DATA_ROOT.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
+def _create_tables(connection: sqlite3.Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS clients (
+            client_id TEXT PRIMARY KEY,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS workflow_packs (
+            workflow_id TEXT PRIMARY KEY,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS lead_desk_tasks (
+            task_id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS heartbeats (
+            heartbeat_id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            workflow_id TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        """
+    )
+
+
+def _table_count(connection: sqlite3.Connection, table: str) -> int:
+    row = connection.execute(f"SELECT COUNT(*) AS total FROM {table}").fetchone()
+    return int(row["total"])
+
+
+def _upsert_payload(connection: sqlite3.Connection, table: str, key_column: str, key: str, payload: dict) -> None:
+    timestamp = utc_now()
+    serialized = json.dumps(payload, indent=2)
+    if table == "lead_desk_tasks":
+        connection.execute(
+            """
+            INSERT INTO lead_desk_tasks (task_id, client_id, payload, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(task_id) DO UPDATE SET
+                client_id = excluded.client_id,
+                payload = excluded.payload,
+                updated_at = excluded.updated_at
+            """,
+            (key, payload.get("client_id", ""), serialized, timestamp),
+        )
+        return
+    if table == "heartbeats":
+        connection.execute(
+            """
+            INSERT INTO heartbeats (heartbeat_id, client_id, workflow_id, payload, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(heartbeat_id) DO UPDATE SET
+                client_id = excluded.client_id,
+                workflow_id = excluded.workflow_id,
+                payload = excluded.payload,
+                updated_at = excluded.updated_at
+            """,
+            (key, payload.get("client_id", ""), payload.get("workflow_id", ""), serialized, timestamp),
+        )
+        return
+
+    connection.execute(
+        f"""
+        INSERT INTO {table} ({key_column}, payload, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT({key_column}) DO UPDATE SET
+            payload = excluded.payload,
+            updated_at = excluded.updated_at
+        """,
+        (key, serialized, timestamp),
+    )
+
+
+def _load_payloads(connection: sqlite3.Connection, table: str, order_by: str) -> list[dict]:
+    rows = connection.execute(f"SELECT payload FROM {table} ORDER BY {order_by}").fetchall()
+    return [json.loads(row["payload"]) for row in rows]
+
+
+def _replace_table(connection: sqlite3.Connection, table: str, key_column: str, rows: list[dict]) -> None:
+    connection.execute(f"DELETE FROM {table}")
+    for row in rows:
+        key = str(row.get(key_column, ""))
+        if key:
+            _upsert_payload(connection, table, key_column, key, row)
+
+
+def _migrate_or_seed(connection: sqlite3.Connection) -> None:
+    if _table_count(connection, "clients") == 0:
+        client_rows = _read_json(CLIENTS_PATH, [item.model_dump() for item in default_clients()])
+        for row in client_rows:
+            _upsert_payload(connection, "clients", "client_id", row["client_id"], row)
+
+    if _table_count(connection, "workflow_packs") == 0:
+        workflow_rows = _read_json(WORKFLOWS_PATH, [item.model_dump() for item in default_workflow_packs()])
+        for row in workflow_rows:
+            _upsert_payload(connection, "workflow_packs", "workflow_id", row["workflow_id"], row)
+
+    if _table_count(connection, "lead_desk_tasks") == 0:
+        for row in _read_json(TASKS_PATH, []):
+            task_id = row.get("task_id")
+            if task_id:
+                _upsert_payload(connection, "lead_desk_tasks", "task_id", task_id, row)
+
+    if _table_count(connection, "heartbeats") == 0:
+        for row in _read_json(HEARTBEATS_PATH, []):
+            heartbeat_id = row.get("heartbeat_id")
+            if heartbeat_id:
+                _upsert_payload(connection, "heartbeats", "heartbeat_id", heartbeat_id, row)
 
 
 def default_manifest() -> SmartSiteManifest:
@@ -198,48 +330,58 @@ def default_clients() -> list[ClientRecord]:
 
 
 def ensure_seed_data() -> None:
-    DATA_ROOT.mkdir(parents=True, exist_ok=True)
-
-    if not CLIENTS_PATH.exists():
-        _write_json(CLIENTS_PATH, [item.model_dump() for item in default_clients()])
-    if not WORKFLOWS_PATH.exists():
-        _write_json(WORKFLOWS_PATH, [item.model_dump() for item in default_workflow_packs()])
-    if not TASKS_PATH.exists():
-        _write_json(TASKS_PATH, [])
-    if not HEARTBEATS_PATH.exists():
-        _write_json(HEARTBEATS_PATH, [])
+    with _connect() as connection:
+        _create_tables(connection)
+        _migrate_or_seed(connection)
+        connection.commit()
 
 
 def load_clients() -> list[ClientRecord]:
     ensure_seed_data()
-    return [ClientRecord.model_validate(item) for item in _read_json(CLIENTS_PATH, [])]
+    with _connect() as connection:
+        rows = _load_payloads(connection, "clients", "client_id")
+    return [ClientRecord.model_validate(item) for item in rows]
 
 
 def save_clients(clients: list[ClientRecord]) -> None:
-    _write_json(CLIENTS_PATH, [client.model_dump() for client in clients])
+    ensure_seed_data()
+    with _connect() as connection:
+        _replace_table(connection, "clients", "client_id", [client.model_dump() for client in clients])
+        connection.commit()
 
 
 def load_workflow_packs() -> list[WorkflowPack]:
     ensure_seed_data()
-    return [WorkflowPack.model_validate(item) for item in _read_json(WORKFLOWS_PATH, [])]
+    with _connect() as connection:
+        rows = _load_payloads(connection, "workflow_packs", "workflow_id")
+    return [WorkflowPack.model_validate(item) for item in rows]
 
 
 def load_tasks() -> list[dict]:
     ensure_seed_data()
-    return _read_json(TASKS_PATH, [])
+    with _connect() as connection:
+        return _load_payloads(connection, "lead_desk_tasks", "updated_at")
 
 
 def save_tasks(tasks: list[dict]) -> None:
-    _write_json(TASKS_PATH, tasks)
+    ensure_seed_data()
+    with _connect() as connection:
+        _replace_table(connection, "lead_desk_tasks", "task_id", tasks)
+        connection.commit()
 
 
 def load_heartbeats() -> list[HeartbeatSummary]:
     ensure_seed_data()
-    return [HeartbeatSummary.model_validate(item) for item in _read_json(HEARTBEATS_PATH, [])]
+    with _connect() as connection:
+        rows = _load_payloads(connection, "heartbeats", "updated_at")
+    return [HeartbeatSummary.model_validate(item) for item in rows]
 
 
 def save_heartbeats(heartbeats: list[HeartbeatSummary]) -> None:
-    _write_json(HEARTBEATS_PATH, [heartbeat.model_dump() for heartbeat in heartbeats])
+    ensure_seed_data()
+    with _connect() as connection:
+        _replace_table(connection, "heartbeats", "heartbeat_id", [heartbeat.model_dump() for heartbeat in heartbeats])
+        connection.commit()
 
 
 def build_seed_log_messages(clients: list[ClientRecord]) -> list[RuntimeNote]:

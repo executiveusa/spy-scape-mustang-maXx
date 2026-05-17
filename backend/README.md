@@ -15,7 +15,7 @@ The public shell, deploy console, asset pipeline, and command deck now have enou
 - `maxx_bff/main.py` - FastAPI entry point
 - `maxx_bff/control_plane.py` - tenant-aware Lead Desk orchestration
 - `maxx_bff/hermes_vendor.py` - Hermes profile control adapter
-- `maxx_bff/storage.py` - JSON-backed tenant/task/workflow persistence
+- `maxx_bff/storage.py` - SQLite-backed tenant/task/workflow persistence with JSON migration
 - `maxx_bff/settings.py` - environment, CORS, and production warning policy
 - `tests/test_maxx_bff.py` - backend integration tests
 
@@ -48,6 +48,7 @@ Required environment:
 ```env
 MAXX_ENV=production
 MAXX_ALLOWED_ORIGINS=https://your-vercel-production-domain,https://your-vercel-preview-domain
+MAXX_BFF_SHARED_SECRET=replace-with-a-generated-32-byte-secret
 MAXX_DATA_DIR=/data/maxx
 MAXX_HERMES_HOME=/runtime/hermes
 MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent
@@ -91,4 +92,4 @@ That brings up both:
 - real deployment action adapters
 - role-based multitenant operator access
 
-This backend supports the v1 MAXX capability: multi-tenant Lead Desk operations backed by Hermes profile homes on one server. It can be used for a controlled production demo only when the BFF is private, persistent volumes are configured, and `/v1/hermes/health.execution_ready` is true.
+This backend supports the v1 MAXX capability: multi-tenant Lead Desk operations backed by Hermes profile homes on one server. It can be used for a controlled production demo only when the BFF is private or shared-secret protected, persistent volumes are configured, and `/v1/hermes/health.execution_ready` is true.

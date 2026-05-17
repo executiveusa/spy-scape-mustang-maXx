@@ -18,6 +18,7 @@ The local secret file can contain:
 MAXX_OPENROUTER_API_KEY=sk-or-v1-...
 COOLIFY_API_TOKEN=...
 COOLIFY_URL=https://your-coolify-host
+MAXX_BFF_SHARED_SECRET=replace-with-a-generated-32-byte-secret
 ```
 
 Do not commit this file.
@@ -30,7 +31,7 @@ Create a private Coolify application for the backend using:
 - App definition reference: `backend/coolify.json`
 - Exposed port: `8010`
 - Persistent volumes:
-  - `/data/maxx`
+  - `/data/maxx` for `/data/maxx/maxx.db`
   - `/runtime/hermes`
   - `/opt/hermes-agent`
 
@@ -60,6 +61,8 @@ After Coolify gives the private/tunneled backend origin:
 ```powershell
 vercel env add MAXX_BFF_URL production --force --yes --value "https://private-or-tunneled-bff-origin"
 vercel env add MAXX_BFF_URL preview feature/v2-clean --force --yes --value "https://private-or-tunneled-bff-origin"
+vercel env add MAXX_BFF_SHARED_SECRET production --force --yes --value "same-secret-as-backend"
+vercel env add MAXX_BFF_SHARED_SECRET preview feature/v2-clean --force --yes --value "same-secret-as-backend"
 ```
 
 Then redeploy preview:
@@ -74,6 +77,7 @@ vercel deploy --yes
 powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BackendUrl "https://private-or-tunneled-bff-origin" `
   -FrontendUrl "https://spy-scape-mustang-maxx-8x7b7nca9-the-pauli-effect.vercel.app" `
+  -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -RequireLiveStack `
   -RequireHermesExecutionReady
 ```

@@ -15,6 +15,7 @@ Set these on the private backend service:
 ```env
 MAXX_ENV=production
 MAXX_ALLOWED_ORIGINS=https://your-vercel-production-domain,https://your-vercel-preview-domain
+MAXX_BFF_SHARED_SECRET=replace-with-a-generated-32-byte-secret
 MAXX_DATA_DIR=/data/maxx
 MAXX_HERMES_HOME=/runtime/hermes
 MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent
@@ -27,6 +28,7 @@ Set this on Vercel:
 
 ```env
 MAXX_BFF_URL=https://private-or-tunneled-bff-origin
+MAXX_BFF_SHARED_SECRET=same-secret-as-the-private-backend
 MAXX_ALLOW_LOCAL_BFF_IN_PRODUCTION=false
 ```
 
@@ -41,7 +43,7 @@ The frontend and backend have separate Coolify definitions:
 
 For the backend app, mount persistent volumes at:
 
-- `/data/maxx` for tenant/task/workflow state.
+- `/data/maxx` for SQLite tenant/task/workflow state at `/data/maxx/maxx.db`.
 - `/runtime/hermes` for Hermes profile homes and workspace state.
 - `/opt/hermes-agent` for the Hermes vendor checkout.
 
@@ -62,6 +64,7 @@ Until auth is implemented, production is acceptable only if the FastAPI service 
 - Coolify/VPS should bind FastAPI to loopback, a private network, or a tunnel origin.
 - CORS must list only the Vercel production and preview origins.
 - Tenant mutation endpoints must not be reachable directly from the public internet.
+- `MAXX_BFF_SHARED_SECRET` must be set on both the backend and Vercel while port `8010` is reachable.
 - `MAXX_ALLOW_PUBLIC_BFF=true` is not allowed for real client data.
 
 ## Verification
@@ -80,6 +83,7 @@ Strict live backend verification:
 powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BackendUrl "https://private-or-tunneled-bff-origin" `
   -FrontendUrl "https://your-vercel-preview-url" `
+  -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -RequireLiveStack `
   -RequireHermesExecutionReady
 ```
@@ -100,4 +104,5 @@ The strict command must pass before claiming model-backed Lead Desk execution.
 - `/v1/hermes/health` reports `execution_ready: true`.
 - `/api/runtime`, `/api/tenants`, and `/api/lead-desk` work through Next API routes.
 - FastAPI is not directly reachable from an untrusted public network.
+- Unauthorized `/v1/*` requests return `401` when the shared secret is configured.
 - Persistent backend volumes are configured and backed up.

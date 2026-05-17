@@ -38,7 +38,14 @@ class MaxxBffIntegrationTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
-        for key in ["MAXX_DATA_DIR", "MAXX_HERMES_HOME", "MAXX_HERMES_VENDOR_PATH", "MAXX_ENV", "MAXX_ALLOWED_ORIGINS"]:
+        for key in [
+            "MAXX_DATA_DIR",
+            "MAXX_HERMES_HOME",
+            "MAXX_HERMES_VENDOR_PATH",
+            "MAXX_ENV",
+            "MAXX_ALLOWED_ORIGINS",
+            "MAXX_BFF_SHARED_SECRET",
+        ]:
             os.environ.pop(key, None)
 
     def test_hermes_health_and_client_provisioning(self) -> None:
@@ -59,6 +66,20 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         manifest = manifest_response.json()
         self.assertEqual(manifest["client_id"], "maxx-demo")
         self.assertIn("lead-desk", manifest["enabled_workflows"])
+        self.assertTrue((self.data_dir / "maxx.db").exists())
+
+    def test_shared_secret_protects_v1_routes_when_configured(self) -> None:
+        os.environ["MAXX_BFF_SHARED_SECRET"] = "test-secret"
+
+        for name in [key for key in sys.modules if key.startswith("maxx_bff")]:
+            sys.modules.pop(name, None)
+        self.main = importlib.import_module("maxx_bff.main")
+        self.client = TestClient(self.main.app)
+
+        self.assertEqual(self.client.get("/health").status_code, 200)
+        self.assertEqual(self.client.get("/v1/hermes/health").status_code, 401)
+        authorized = self.client.get("/v1/hermes/health", headers={"X-MAXX-BFF-SECRET": "test-secret"})
+        self.assertEqual(authorized.status_code, 200)
 
     def test_client_creation_duplicate_guard_and_provisioning(self) -> None:
         create_response = self.client.post(

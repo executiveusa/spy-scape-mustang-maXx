@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import hermes_vendor
+from .auth import require_bff_secret, shared_secret_configured
 from .settings import allowed_origins, production_config_warnings
 from .control_plane import (
     create_client,
@@ -93,12 +94,15 @@ def health() -> dict[str, str]:
     }
 
 
-@app.get("/v1/hermes/health")
+Protected = Depends(require_bff_secret)
+
+
+@app.get("/v1/hermes/health", dependencies=[Protected])
 def hermes_health() -> dict[str, object]:
     return hermes_vendor.health().model_dump()
 
 
-@app.get("/v1/hermes/profiles")
+@app.get("/v1/hermes/profiles", dependencies=[Protected])
 def hermes_profiles() -> dict[str, object]:
     return {
         "profiles": hermes_vendor.list_profiles(),
@@ -106,7 +110,7 @@ def hermes_profiles() -> dict[str, object]:
     }
 
 
-@app.get("/v1/providers")
+@app.get("/v1/providers", dependencies=[Protected])
 def providers() -> dict[str, object]:
     hermes = hermes_vendor.health()
     return {
@@ -121,12 +125,12 @@ def providers() -> dict[str, object]:
     }
 
 
-@app.get("/v1/maxx/readiness")
+@app.get("/v1/maxx/readiness", dependencies=[Protected])
 def maxx_readiness(client_id: str = Query(default="maxx-demo")) -> dict[str, object]:
     return maxx_wrapper_readiness(client_id)
 
 
-@app.post("/v1/maxx/quickstart")
+@app.post("/v1/maxx/quickstart", dependencies=[Protected])
 def maxx_quickstart(request: ClientCreateRequest | None = Body(default=None)) -> dict[str, object]:
     try:
         return quickstart_client(request)
@@ -136,12 +140,12 @@ def maxx_quickstart(request: ClientCreateRequest | None = Body(default=None)) ->
         raise HTTPException(status_code=409, detail=str(error)) from error
 
 
-@app.get("/v1/clients")
+@app.get("/v1/clients", dependencies=[Protected])
 def clients() -> dict[str, object]:
     return {"clients": [client.model_dump() for client in list_clients()]}
 
 
-@app.post("/v1/clients")
+@app.post("/v1/clients", dependencies=[Protected])
 def create_tenant(request: ClientCreateRequest) -> dict[str, object]:
     try:
         client = create_client(request)
@@ -152,7 +156,7 @@ def create_tenant(request: ClientCreateRequest) -> dict[str, object]:
     return client.model_dump()
 
 
-@app.post("/v1/clients/{client_id}/provision")
+@app.post("/v1/clients/{client_id}/provision", dependencies=[Protected])
 def provision(client_id: str) -> dict[str, object]:
     try:
         client = provision_client(client_id)
@@ -163,7 +167,7 @@ def provision(client_id: str) -> dict[str, object]:
     return client.model_dump()
 
 
-@app.get("/v1/clients/{client_id}/manifest")
+@app.get("/v1/clients/{client_id}/manifest", dependencies=[Protected])
 def client_manifest(client_id: str) -> dict[str, object]:
     try:
         return manifest_for(client_id).model_dump()
@@ -171,17 +175,17 @@ def client_manifest(client_id: str) -> dict[str, object]:
         raise HTTPException(status_code=404, detail=f"Unknown client: {error.args[0]}") from error
 
 
-@app.get("/v1/workflows")
+@app.get("/v1/workflows", dependencies=[Protected])
 def workflows() -> dict[str, object]:
     return {"workflow_packs": [workflow.model_dump() for workflow in list_workflow_packs()]}
 
 
-@app.get("/v1/heartbeats")
+@app.get("/v1/heartbeats", dependencies=[Protected])
 def heartbeats() -> dict[str, object]:
     return {"heartbeats": [heartbeat.model_dump() for heartbeat in list_heartbeats()]}
 
 
-@app.post("/v1/lead-desk/tasks")
+@app.post("/v1/lead-desk/tasks", dependencies=[Protected])
 def create_lead_desk_task(submission: LeadDeskSubmission) -> dict[str, object]:
     try:
         task = submit_lead(submission)
@@ -190,12 +194,12 @@ def create_lead_desk_task(submission: LeadDeskSubmission) -> dict[str, object]:
     return task.model_dump()
 
 
-@app.get("/v1/lead-desk/tasks")
+@app.get("/v1/lead-desk/tasks", dependencies=[Protected])
 def lead_desk_tasks(client_id: str | None = Query(default=None)) -> dict[str, object]:
     return {"tasks": [task.model_dump() for task in list_tasks(client_id=client_id)]}
 
 
-@app.get("/v1/lead-desk/tasks/{task_id}")
+@app.get("/v1/lead-desk/tasks/{task_id}", dependencies=[Protected])
 def lead_desk_task(task_id: str) -> dict[str, object]:
     try:
         return get_task(task_id).model_dump()
@@ -203,7 +207,7 @@ def lead_desk_task(task_id: str) -> dict[str, object]:
         raise HTTPException(status_code=404, detail=f"Unknown task: {error.args[0]}") from error
 
 
-@app.patch("/v1/lead-desk/tasks/{task_id}")
+@app.patch("/v1/lead-desk/tasks/{task_id}", dependencies=[Protected])
 def patch_lead_desk_task(task_id: str, update: LeadDeskStatusUpdate) -> dict[str, object]:
     try:
         task = update_task_status(task_id, update.status, update.note)
@@ -212,7 +216,7 @@ def patch_lead_desk_task(task_id: str, update: LeadDeskStatusUpdate) -> dict[str
     return task.model_dump()
 
 
-@app.get("/v1/meta")
+@app.get("/v1/meta", dependencies=[Protected])
 def meta() -> dict[str, object]:
     hermes = hermes_vendor.health()
     workflows_count = len(list_workflow_packs())
@@ -225,6 +229,7 @@ def meta() -> dict[str, object]:
         "auth": "unconfigured",
         "memory": "profile-backed",
         "tenancy": "multi-tenant",
+        "shared_secret_required": shared_secret_configured(),
         "allowed_origins": allowed_origins(),
         "hermes_mode": hermes.mode,
         "provider": hermes.provider,
@@ -241,7 +246,7 @@ def meta() -> dict[str, object]:
     }
 
 
-@app.get("/v1/access")
+@app.get("/v1/access", dependencies=[Protected])
 def access() -> dict[str, object]:
     return {
         "status": "scaffold",
@@ -267,6 +272,7 @@ def access() -> dict[str, object]:
         ],
         "env_targets": [
             "MAXX_BFF_URL",
+            "MAXX_BFF_SHARED_SECRET",
             "MAXX_ALLOWED_ORIGINS",
             "MAXX_ENV",
             "MAXX_ALLOW_PUBLIC_BFF",
@@ -275,22 +281,22 @@ def access() -> dict[str, object]:
     }
 
 
-@app.get("/v1/systems")
+@app.get("/v1/systems", dependencies=[Protected])
 def systems() -> dict[str, object]:
     return {"systems": [system.model_dump() for system in runtime_systems()]}
 
 
-@app.get("/v1/logs")
+@app.get("/v1/logs", dependencies=[Protected])
 def logs() -> dict[str, object]:
     return {"logs": [log.model_dump() for log in runtime_logs()]}
 
 
-@app.get("/v1/routes")
+@app.get("/v1/routes", dependencies=[Protected])
 def routes() -> dict[str, object]:
     return {"routes": [route.model_dump() for route in runtime_routes()]}
 
 
-@app.get("/v1/runtime")
+@app.get("/v1/runtime", dependencies=[Protected])
 def runtime() -> dict[str, object]:
     return {
         "health": health(),
@@ -308,7 +314,7 @@ def runtime() -> dict[str, object]:
     }
 
 
-@app.get("/v1/deploy")
+@app.get("/v1/deploy", dependencies=[Protected])
 def deploy() -> dict[str, object]:
     asset_stats = public_asset_stats()
     asset_weight = format_megabytes(asset_stats["bytes"])

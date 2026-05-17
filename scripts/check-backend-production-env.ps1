@@ -16,6 +16,7 @@ $required = @(
 
 if ($RequireSecret) {
   $required += 'MAXX_OPENROUTER_API_KEY'
+  $required += 'MAXX_BFF_SHARED_SECRET'
 }
 
 $missing = @()

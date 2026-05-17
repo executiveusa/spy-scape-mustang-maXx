@@ -1,6 +1,7 @@
 param(
   [string]$BackendUrl = $env:MAXX_VERIFY_BACKEND_URL,
   [string]$FrontendUrl = $env:MAXX_VERIFY_FRONTEND_URL,
+  [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET,
   [switch]$RequireLiveStack,
   [switch]$RequireHermesExecutionReady
 )
@@ -21,7 +22,11 @@ function Invoke-Step {
 
 function Invoke-JsonGet {
   param([string]$Url)
-  $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 15
+  $headers = @{}
+  if ($script:BffSharedSecret) {
+    $headers['X-MAXX-BFF-SECRET'] = $script:BffSharedSecret
+  }
+  $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -Headers $headers -TimeoutSec 15
   return $response.Content | ConvertFrom-Json
 }
 
@@ -32,8 +37,26 @@ function Invoke-JsonPost {
   )
 
   $json = $Body | ConvertTo-Json -Depth 10
-  $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 30 -Method Post -ContentType 'application/json' -Body $json
+  $headers = @{}
+  if ($script:BffSharedSecret) {
+    $headers['X-MAXX-BFF-SECRET'] = $script:BffSharedSecret
+  }
+  $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -Headers $headers -TimeoutSec 30 -Method Post -ContentType 'application/json' -Body $json
   return $response.Content | ConvertFrom-Json
+}
+
+function Invoke-AuthorizedPatch {
+  param(
+    [string]$Url,
+    [object]$Body
+  )
+
+  $json = $Body | ConvertTo-Json -Depth 10
+  $headers = @{}
+  if ($script:BffSharedSecret) {
+    $headers['X-MAXX-BFF-SECRET'] = $script:BffSharedSecret
+  }
+  return Invoke-WebRequest -UseBasicParsing -Uri $Url -Headers $headers -TimeoutSec 30 -Method Patch -ContentType 'application/json' -Body $json
 }
 
 Push-Location $root
@@ -73,6 +96,23 @@ try {
   }
 
   if ($backendReachable) {
+    if ($BffSharedSecret) {
+      Invoke-Step "BFF shared-secret gate" {
+        try {
+          Invoke-WebRequest -UseBasicParsing -Uri "$BackendUrl/v1/hermes/health" -TimeoutSec 15 | Out-Null
+          throw "Unauthenticated /v1/hermes/health unexpectedly succeeded."
+        } catch {
+          if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) {
+            Write-Host "Unauthenticated /v1 requests are rejected."
+          } else {
+            throw
+          }
+        }
+      }
+    } else {
+      Write-Warning "MAXX_BFF_SHARED_SECRET is not set for verification; skipping unauthorized /v1 gate check."
+    }
+
     Invoke-Step "Hermes runtime readiness" {
       $hermes = Invoke-JsonGet "$BackendUrl/v1/hermes/health"
       Write-Host "Hermes status: $($hermes.status); execution_ready: $($hermes.execution_ready)"
@@ -129,8 +169,10 @@ try {
         throw "Lead Desk task did not return a task_id."
       }
 
-      $patchBody = @{ status = "completed"; note = "Production verification marked this task complete." } | ConvertTo-Json
-      $patched = Invoke-WebRequest -UseBasicParsing -Uri "$BackendUrl/v1/lead-desk/tasks/$($task.task_id)" -TimeoutSec 30 -Method Patch -ContentType 'application/json' -Body $patchBody
+      $patched = Invoke-AuthorizedPatch "$BackendUrl/v1/lead-desk/tasks/$($task.task_id)" @{
+        status = "completed"
+        note = "Production verification marked this task complete."
+      }
       $patchedTask = $patched.Content | ConvertFrom-Json
       if ($patchedTask.status -ne 'completed') {
         throw "Lead Desk task did not transition to completed."

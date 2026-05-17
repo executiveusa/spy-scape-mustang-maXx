@@ -62,6 +62,9 @@ if (-not $script:CoolifyToken -and $secrets.ContainsKey('COOLIFY_API_TOKEN')) {
 if (-not $env:MAXX_OPENROUTER_API_KEY -and $secrets.ContainsKey('MAXX_OPENROUTER_API_KEY')) {
   $env:MAXX_OPENROUTER_API_KEY = $secrets['MAXX_OPENROUTER_API_KEY']
 }
+if (-not $env:MAXX_BFF_SHARED_SECRET -and $secrets.ContainsKey('MAXX_BFF_SHARED_SECRET')) {
+  $env:MAXX_BFF_SHARED_SECRET = $secrets['MAXX_BFF_SHARED_SECRET']
+}
 
 if (-not $CoolifyUrl) {
   throw "COOLIFY_URL is required. Add COOLIFY_URL=https://your-coolify-host to the secret file or pass -CoolifyUrl."
@@ -102,6 +105,9 @@ if ($UpdateEnv) {
   if (-not $env:MAXX_OPENROUTER_API_KEY) {
     throw "MAXX_OPENROUTER_API_KEY is required to update backend env."
   }
+  if (-not $env:MAXX_BFF_SHARED_SECRET) {
+    throw "MAXX_BFF_SHARED_SECRET is required to update backend env."
+  }
 
   $allowedOrigins = @(
     'https://spy-scape-mustang-maxx.vercel.app',
@@ -118,6 +124,7 @@ if ($UpdateEnv) {
       @{ key = 'MAXX_HERMES_PROVIDER'; value = 'openrouter'; is_literal = $true; is_multiline = $false; is_preview = $false },
       @{ key = 'MAXX_HERMES_MODEL'; value = 'openrouter/owl-alpha'; is_literal = $true; is_multiline = $false; is_preview = $false },
       @{ key = 'MAXX_OPENROUTER_API_KEY'; value = $env:MAXX_OPENROUTER_API_KEY; is_literal = $true; is_multiline = $false; is_preview = $false },
+      @{ key = 'MAXX_BFF_SHARED_SECRET'; value = $env:MAXX_BFF_SHARED_SECRET; is_literal = $true; is_multiline = $false; is_preview = $false },
       @{ key = 'MAXX_ALLOW_PUBLIC_BFF'; value = 'false'; is_literal = $true; is_multiline = $false; is_preview = $false }
     )
   }

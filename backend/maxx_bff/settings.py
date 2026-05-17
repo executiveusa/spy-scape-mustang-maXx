@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+from .auth import shared_secret_configured
+
 
 LOCAL_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
@@ -36,5 +38,7 @@ def production_config_warnings() -> list[str]:
         warnings.append("MAXX_ALLOWED_ORIGINS must not include '*' for production.")
     if is_production() and os.environ.get("MAXX_ALLOW_PUBLIC_BFF", "").lower() == "true":
         warnings.append("MAXX_ALLOW_PUBLIC_BFF=true is only acceptable for short-lived demos, not client production.")
+    if is_production() and not shared_secret_configured():
+        warnings.append("MAXX_BFF_SHARED_SECRET is not set; /v1 routes are not protected from direct access.")
 
     return warnings

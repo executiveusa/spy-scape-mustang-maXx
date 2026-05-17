@@ -1,0 +1,33 @@
+# Ralphy Configuration
+# https://github.com/michaelshimeles/ralphy
+
+# Project info (auto-detected, edit if needed)
+project:
+  name: "agent-maxx-006"
+  language: "TypeScript + Python"
+  framework: "Next.js + FastAPI"
+  description: "Agent MAXX smart-site platform with a Next.js frontend, FastAPI control plane, and Hermes-backed Lead Desk runtime."
+
+# Commands (auto-detected from package.json/pyproject.toml)
+commands:
+  test: "py -3 -m unittest backend\\tests\\test_maxx_bff.py -v && npx tsc --noEmit"
+  lint: "npm run lint"
+  build: "npm run build"
+
+# Rules - instructions the AI MUST follow
+# These are injected into every prompt
+rules:
+  - "Use jCodeMunch as the default code-intelligence layer before broad repo reads when the MCP server is available."
+  - "Treat Hermes as the runtime source of truth and keep the FastAPI BFF as the stable boundary for frontend-facing contracts."
+  - "Preserve literal backend names internally; Bond or 006 naming belongs only in the public storytelling layer."
+  - "Do not claim Lead Desk execution is model-backed unless provider status confirms execution_ready."
+  - "Prefer tenant-safe, idempotent backend changes and verify both degraded and healthy states."
+  - "Use the PRDs under prd/ as the execution source for sequential waves."
+
+# Boundaries - files/folders the AI should not modify
+boundaries:
+  never_touch:
+    - "public/mustang-maxx-images/**"
+    - "ops-checks/**"
+    - "*.png"
+    - "*.log"
