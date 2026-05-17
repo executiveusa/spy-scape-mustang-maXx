@@ -63,14 +63,23 @@ Push-Location $root
 try {
   Invoke-Step "Backend integration tests" {
     py -3 -m unittest backend\tests\test_maxx_bff.py -v
+    if ($LASTEXITCODE -ne 0) {
+      throw "Backend integration tests failed with exit code $LASTEXITCODE."
+    }
   }
 
   Invoke-Step "Next.js production build" {
     npm run build
+    if ($LASTEXITCODE -ne 0) {
+      throw "Next.js production build failed with exit code $LASTEXITCODE."
+    }
   }
 
   Invoke-Step "TypeScript no-emit check" {
     npx tsc --noEmit
+    if ($LASTEXITCODE -ne 0) {
+      throw "TypeScript no-emit check failed with exit code $LASTEXITCODE."
+    }
   }
 
   if (-not $BackendUrl) {
