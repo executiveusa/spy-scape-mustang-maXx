@@ -1,18 +1,1 @@
-@echo off
-REM Mustang Maxx 006 - Quick Install Script
-
-cd /d "%~dp0"
-
-echo 📦 Installing Node.js dependencies...
-call npm install
-
-echo ✅ Done!
-echo.
-echo To start the dev server, run:
-echo   npm run dev
-echo.
-echo Or double-click: deploy.bat
-echo.
-echo Demo login: demo@mustangmaxx.com / demo123456
-
-pause
+@echo off\nREM Mustang Maxx 006 - Quick Install Script\n\ncd /d "%~dp0"\n\necho ?? Installing Node.js dependencies...\ncall npm install\n\necho ? Done!\necho.\necho To start the dev server, run:\necho   npm run dev\necho.\necho Or double-click: deploy.bat\necho.\necho Refer to project documentation for access credentials.\n\npause\n

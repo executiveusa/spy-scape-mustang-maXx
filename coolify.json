@@ -6,9 +6,7 @@
   "type": "dockerfile",
   "dockerfile": "Dockerfile",
   "build": {
-    "buildCommand": "docker build -t mustang-maxx .",
-    "baseDirectory": "/",
-    "publishDirectory": ".next"
+    "baseDirectory": "/"
   },
   "settings": {
     "isAutoDeployEnabled": true,
@@ -20,25 +18,12 @@
       "value": "production"
     },
     {
-      "key": "NEXTAUTH_URL",
-      "value": "https://mustangmaxx.your-domain.com",
-      "description": "Set this to your Coolify-assigned domain"
+      "key": "NEXT_TELEMETRY_DISABLED",
+      "value": "1"
     },
     {
-      "key": "NEXTAUTH_SECRET",
-      "value": "",
-      "isSecret": true,
-      "description": "Generate with: openssl rand -hex 32"
-    },
-    {
-      "key": "GOOGLE_CLIENT_ID",
-      "value": "",
-      "isSecret": true
-    },
-    {
-      "key": "GOOGLE_CLIENT_SECRET",
-      "value": "",
-      "isSecret": true
+      "key": "HOSTNAME",
+      "value": "0.0.0.0"
     }
   ],
   "ports": {
@@ -50,6 +35,6 @@
     "interval": 30,
     "timeout": 10,
     "retries": 3,
-    "startPeriod": 15
+    "startPeriod": 20
   }
 }
