@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 
 interface LoadingScreenProps {
@@ -12,6 +12,7 @@ const DIGITS = ['0', '0', '6']
 export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [revealed, setRevealed] = useState(0)
   const [exiting, setExiting] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     const t1 = setTimeout(() => setRevealed(1), 500)

@@ -2,7 +2,7 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: process.env.MAXX_NEXT_STANDALONE === 'true' ? 'standalone' : undefined,
+  output: process.env.MAXX_NEXT_STANDALONE === 'true' || process.env.GITHUB_ACTIONS === 'true' ? 'standalone' : undefined,
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
   outputFileTracingExcludes: {
