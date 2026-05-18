@@ -59,6 +59,5 @@ jobs:
       - name: Trigger Coolify Deployment
         if: github.ref == 'refs/heads/main'
         run: |
-          curl --fail --show-error -X POST "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d '{"event":"deploy","branch":"main"}'
+          curl --fail --show-error --request GET "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
