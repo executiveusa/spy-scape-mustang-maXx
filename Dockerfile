@@ -22,10 +22,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate NEXTAUTH_SECRET at build time if not provided
-ARG NEXTAUTH_SECRET
+# Provide a non-secret build placeholder. Real deployments must override this
+# at runtime with the Coolify/Vercel secret value.
+ARG NEXTAUTH_SECRET=agent-maxx-build-placeholder-change-at-runtime
 ARG NEXTAUTH_URL=http://localhost:3000
-ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")}
+ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 ENV NEXTAUTH_URL=${NEXTAUTH_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV MAXX_NEXT_STANDALONE=true
