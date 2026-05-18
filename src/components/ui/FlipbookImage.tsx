@@ -74,6 +74,7 @@ export default function FlipbookImage({
 
   // Preload images
   useEffect(() => {
+    setIsLoaded(false)
     let loadedCount = 0
     const loadImage = (src: string) => {
       return new Promise((resolve) => {
