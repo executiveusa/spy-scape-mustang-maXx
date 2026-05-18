@@ -220,12 +220,12 @@ export default function FlipbookImage({
 
           {/* Fullscreen */}
           <motion.button
-            onClick={() => {
+            onClick={(event) => {
               const elem = document.fullscreenElement
               if (elem) {
                 document.exitFullscreen()
               } else {
-                const container = document.getElementById('flipbook-container')
+                const container = event.currentTarget.parentElement?.parentElement
                 container?.requestFullscreen()
               }
             }}
