@@ -2,6 +2,7 @@ param(
   [string]$BackendUrl = $env:MAXX_VERIFY_BACKEND_URL,
   [string]$FrontendUrl = $env:MAXX_VERIFY_FRONTEND_URL,
   [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET,
+  [string]$OperatorPassword = $env:MAXX_OPERATOR_PASSWORD,
   [switch]$RequireLiveStack,
   [switch]$RequireHermesExecutionReady
 )
@@ -65,6 +66,27 @@ try {
     py -3 -m unittest backend\tests\test_maxx_bff.py -v
     if ($LASTEXITCODE -ne 0) {
       throw "Backend integration tests failed with exit code $LASTEXITCODE."
+    }
+  }
+
+  Invoke-Step "Operator auth contract" {
+    npm run test:operator-auth
+    if ($LASTEXITCODE -ne 0) {
+      throw "Operator auth contract failed with exit code $LASTEXITCODE."
+    }
+  }
+
+  Invoke-Step "Smart-site story contract" {
+    npm run test:smart-site-story
+    if ($LASTEXITCODE -ne 0) {
+      throw "Smart-site story contract failed with exit code $LASTEXITCODE."
+    }
+  }
+
+  Invoke-Step "Launch ops contract" {
+    npm run test:launch-ops
+    if ($LASTEXITCODE -ne 0) {
+      throw "Launch ops contract failed with exit code $LASTEXITCODE."
     }
   }
 
@@ -199,13 +221,69 @@ try {
   if ($FrontendUrl) {
     $FrontendUrl = $FrontendUrl.TrimEnd('/')
     Invoke-Step "Frontend route smoke checks" {
-      foreach ($path in @('/', '/dashboard/', '/tenants/', '/lead-desk/', '/deploy/')) {
+      foreach ($path in @('/', '/api/health/', '/api/smart-site-story/')) {
         $url = "$FrontendUrl$path"
         $response = Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 20
         if ($response.StatusCode -lt 200 -or $response.StatusCode -ge 400) {
           throw "Frontend smoke check failed for $url with status $($response.StatusCode)."
         }
         Write-Host "$url -> $($response.StatusCode)"
+      }
+    }
+
+    Invoke-Step "Operator-protected frontend checks" {
+      foreach ($path in @('/api/runtime/', '/api/tenants/', '/api/lead-desk/')) {
+        try {
+          Invoke-WebRequest -UseBasicParsing -Uri "$FrontendUrl$path" -TimeoutSec 20 | Out-Null
+          throw "Unauthenticated $path unexpectedly succeeded."
+        } catch {
+          if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) {
+            Write-Host "$path rejects unauthenticated requests."
+          } else {
+            throw
+          }
+        }
+      }
+
+      if ($OperatorPassword) {
+        $scriptBlock = @'
+const base = process.env.MAXX_VERIFY_FRONTEND_URL.replace(/\/$/, '');
+const password = process.env.MAXX_OPERATOR_PASSWORD;
+
+(async () => {
+  const login = await fetch(`${base}/api/operator-session/`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ password, tenant_id: 'maxx-demo' }),
+    redirect: 'manual',
+  });
+  if (login.status !== 200) {
+    throw new Error(`operator-session returned ${login.status}`);
+  }
+  const cookie = login.headers.get('set-cookie')?.split(';')[0];
+  if (!cookie) {
+    throw new Error('operator-session did not return a cookie');
+  }
+  for (const path of ['/dashboard/', '/lead-desk/', '/api/runtime/', '/api/lead-desk/']) {
+    const response = await fetch(`${base}${path}`, { headers: { cookie }, redirect: 'manual' });
+    if (response.status !== 200) {
+      throw new Error(`${path} returned ${response.status} after operator login`);
+    }
+    console.log(`${path} -> ${response.status}`);
+  }
+})().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});
+'@
+        $env:MAXX_VERIFY_FRONTEND_URL = $FrontendUrl
+        $env:MAXX_OPERATOR_PASSWORD = $OperatorPassword
+        $scriptBlock | node -
+        if ($LASTEXITCODE -ne 0) {
+          throw "Operator login smoke failed with exit code $LASTEXITCODE."
+        }
+      } else {
+        Write-Warning "MAXX_OPERATOR_PASSWORD is not set; skipping authenticated operator smoke."
       }
     }
   }

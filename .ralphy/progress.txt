@@ -5,3 +5,4 @@
 - 2026-05-18: Wave 2 Lead Desk contract in progress on `codex/wave-2-lead-desk`. Added failing-first coverage for task lifecycle fields and SQLite restart survival, then exposed `next_action`, `routing_target`, and per-task heartbeat summaries for operator review.
 - 2026-05-18: Wave 3 operator access in progress on `codex/wave-3-operator-access`. Added signed operator-session contract coverage, protected operator pages/API routes, and generated Vercel operator auth secrets outside the repo.
 - 2026-05-18: Wave 4 smart-site story in progress on codex/wave-4-smart-site-story. Added sanitized public story endpoint and runtime-backed 006 feature mapping for Q Branch, MI6 Desk, GoldenEye, Aston Grid, and Spectre Shield without touching final art assets.
+- 2026-05-18: Wave 5 launch ops in progress on codex/wave-5-launch. Added launch verification coverage, VPS backup/restore scripts, env parity/token rotation docs, and the 15-minute new-client runbook.
