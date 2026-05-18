@@ -1,13 +1,87 @@
-﻿'use client'
+'use client'
 
+import { FormEvent, Suspense, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, ArrowLeft } from 'lucide-react'
+import { Shield, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+function OperatorLoginForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextPath = searchParams.get('next') || '/dashboard'
+  const isUnconfigured = searchParams.get('auth') === 'unconfigured'
+  const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(
+    isUnconfigured ? 'Operator auth is not configured yet. Set MAXX_OPERATOR_PASSWORD and MAXX_OPERATOR_SESSION_SECRET.' : null,
+  )
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/operator-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password,
+          tenant_id: 'maxx-demo',
+        }),
+      })
+      const payload = (await response.json()) as { detail?: string }
+      if (!response.ok) {
+        throw new Error(payload.detail ?? 'Operator login failed.')
+      }
+      router.replace(nextPath.startsWith('/') ? nextPath : '/dashboard')
+      router.refresh()
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Operator login failed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form className="space-y-4 text-left" onSubmit={onSubmit}>
+      <label className="block">
+        <span className="mb-2 block font-mono text-xs uppercase tracking-[0.22em] text-gray-500">
+          Operator password
+        </span>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-maxx-cyan/50"
+        />
+      </label>
+
+      {error ? (
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-maxx-cyan/30 bg-maxx-cyan/10 px-5 py-3 font-mono text-xs uppercase tracking-[0.22em] text-maxx-cyan transition hover:bg-maxx-cyan/20 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+        Open command deck
+      </button>
+    </form>
+  )
+}
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-maxx-black flex items-center justify-center p-4">
-      {/* Grid bg */}
+    <div className="flex min-h-screen items-center justify-center bg-maxx-black p-4">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(70,213,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(70,213,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
 
       <motion.div
@@ -17,32 +91,31 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
       >
         <motion.div
-          className="flex justify-center mb-8"
+          className="mb-8 flex justify-center"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <Shield className="w-12 h-12 text-maxx-cyan" />
+          <Shield className="h-12 w-12 text-maxx-cyan" />
         </motion.div>
 
-        <p className="text-maxx-cyan font-mono text-xs tracking-[0.4em] mb-3">
-          AGENT ACCESS
-        </p>
-        <h1 className="text-2xl font-heading font-bold text-white mb-4">
-          Mustang Maxx 006
-        </h1>
-        <div className="w-12 h-px bg-maxx-cyan/40 mx-auto mb-6" />
+        <p className="mb-3 font-mono text-xs tracking-[0.4em] text-maxx-cyan">AGENT ACCESS</p>
+        <h1 className="mb-4 font-heading text-2xl font-bold text-white">Agent MAXX Operator</h1>
+        <div className="mx-auto mb-6 h-px w-12 bg-maxx-cyan/40" />
 
-        <p className="text-gray-500 text-sm leading-relaxed mb-10">
-          Agent portal access is managed through the IronClaw backend system.
-          Full authentication is available — connect your backend to enable.
+        <p className="mb-8 text-sm leading-relaxed text-gray-500">
+          Operator access now protects the dashboard, tenant controls, deployment console, and Lead Desk review lane.
         </p>
+
+        <Suspense fallback={<div className="text-sm text-gray-500">Loading secure console...</div>}>
+          <OperatorLoginForm />
+        </Suspense>
 
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-maxx-cyan font-mono text-sm hover:gap-3 transition-all"
+          className="mt-8 inline-flex items-center gap-2 font-mono text-sm text-maxx-cyan transition-all hover:gap-3"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="h-4 w-4" />
           Return to Home
         </Link>
       </motion.div>

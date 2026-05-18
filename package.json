@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "verify:production": "powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1"
+    "verify:production": "powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1",
+    "test:operator-auth": "node scripts/test-operator-auth.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.0",
