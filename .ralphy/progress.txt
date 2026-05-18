@@ -1,0 +1,3 @@
+# Ralphy Progress Log
+
+- 2026-05-17: Wave 1 VPS hardening in progress. Added shared-secret gate for sensitive BFF routes, Vercel proxy secret forwarding, SQLite-backed MAXX state with JSON migration, production verification checks for unauthorized/authorized backend access, and updated Wave 1-3/5 PRDs for the VPS-first route.
