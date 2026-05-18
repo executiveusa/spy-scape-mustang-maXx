@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { AnimatePresence, motion, useScroll, useSpring } from 'framer-motion'
 import dynamic from 'next/dynamic'
 
@@ -12,7 +12,6 @@ import MustangSection from '@/components/sections/MustangSection'
 import CreatorSection from '@/components/sections/CreatorSection'
 import MissionSection from '@/components/sections/MissionSection'
 import EnterSection from '@/components/sections/EnterSection'
-import KineticMarquee from '@/components/ui/KineticMarquee'
 
 const LoadingScreen = dynamic(() => import('@/components/ui/LoadingScreen'))
 const EngineSound = dynamic(() => import('@/components/ui/EngineSound'), {
