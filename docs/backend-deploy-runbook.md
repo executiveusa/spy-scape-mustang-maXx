@@ -37,6 +37,26 @@ Create a private Coolify application for the backend using:
 
 The frontend `coolify.json` is not the backend app.
 
+## Private Network Gate
+
+Before real client traffic, choose one backend exposure pattern:
+
+1. **Loopback or internal proxy, preferred:** bind the FastAPI service to `127.0.0.1:8010` or a private Docker network and expose it only through a trusted reverse proxy, VPN, or tunnel.
+2. **Firewall allowlist:** keep `8010` reachable only from approved operator/VPN/Vercel egress IPs. This is acceptable only if the allowlist can be kept stable.
+3. **Controlled demo only:** leave `8010` public with `MAXX_BFF_SHARED_SECRET` active. This is not acceptable for real client data.
+
+Do not mark the backend production-ready for real clients until option 1 or option 2 is active and verified.
+
+UFW allowlist template:
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw deny 8010/tcp
+sudo ufw allow from <trusted-ip-or-vpn-cidr> to any port 8010 proto tcp
+sudo ufw enable
+sudo ufw status verbose
+```
+
 ## Configure And Deploy Backend
 
 If Coolify already has an `agent-maxx-bff` app, run:
@@ -83,3 +103,9 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
 ```
 
 Only promote after this passes.
+
+Promotion gate:
+
+- Preview/local verification may run autonomously.
+- Production deploy or DNS/backend exposure changes require explicit owner approval while the ZTE production gate is active.
+- If `/v1/hermes/health` is reachable without `MAXX_BFF_SHARED_SECRET`, stop and roll back the backend env/deploy before continuing.

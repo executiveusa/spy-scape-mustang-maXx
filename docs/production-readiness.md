@@ -67,6 +67,37 @@ Until auth is implemented, production is acceptable only if the FastAPI service 
 - `MAXX_BFF_SHARED_SECRET` must be set on both the backend and Vercel while port `8010` is reachable.
 - `MAXX_ALLOW_PUBLIC_BFF=true` is not allowed for real client data.
 
+### Backend Exposure Choices
+
+Use one of these before real client traffic:
+
+| Option | Use for | Required state |
+| --- | --- | --- |
+| A. Loopback bind plus reverse proxy | Preferred production path | FastAPI binds to `127.0.0.1:8010`; only the proxy/tunnel can reach it. |
+| B. Firewall allowlist | Trusted operator/Vercel-only access | VPS firewall allows `8010` only from approved IPs; all other inbound traffic is denied. |
+| C. Public port plus shared secret | Controlled demo only | `MAXX_BFF_SHARED_SECRET` is active, `/v1/*` rejects unauthenticated calls, and no real client data is stored. |
+
+Binary launch gate:
+
+```text
+GO for real clients: Option A or Option B is active, app-level auth is active, and strict verification passes.
+NO-GO for real clients: backend port 8010 is public, even if the shared secret is active.
+```
+
+### UFW Example For Option B
+
+Run these on the VPS only after confirming SSH access works:
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw deny 8010/tcp
+sudo ufw allow from <trusted-ip-or-vpn-cidr> to any port 8010 proto tcp
+sudo ufw enable
+sudo ufw status verbose
+```
+
+If Vercel cannot provide a stable egress IP for the current plan, prefer Option A with a private tunnel/reverse proxy instead of attempting a brittle IP allowlist.
+
 ## Verification
 
 Static and build verification:
@@ -106,3 +137,4 @@ The strict command must pass before claiming model-backed Lead Desk execution.
 - FastAPI is not directly reachable from an untrusted public network.
 - Unauthorized `/v1/*` requests return `401` when the shared secret is configured.
 - Persistent backend volumes are configured and backed up.
+- Production deploys require explicit owner approval while the ZTE production gate is active.
