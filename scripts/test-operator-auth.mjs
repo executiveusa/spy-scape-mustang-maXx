@@ -15,6 +15,7 @@ assert.match(auth, /MAXX_OPERATOR_PASSWORD/, 'operator auth must use MAXX_OPERAT
 assert.match(auth, /MAXX_OPERATOR_SESSION_SECRET/, 'operator auth must use MAXX_OPERATOR_SESSION_SECRET')
 assert.match(auth, /maxx_operator_session/, 'operator auth must define the signed session cookie')
 assert.match(auth, /verifyOperatorSession/, 'operator auth must expose session verification')
+assert.match(auth, /globalThis\.crypto/, 'operator session signing must use runtime-safe Web Crypto access')
 
 const middleware = readRequired('src/middleware.ts')
 assert.match(middleware, /PROTECTED_PAGE_PREFIXES/, 'middleware must protect operator pages')
