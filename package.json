@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "verify:production": "powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1",
-    "test:operator-auth": "node scripts/test-operator-auth.mjs"
+    "test:operator-auth": "node scripts/test-operator-auth.mjs",
+    "test:smart-site-story": "node scripts/test-smart-site-story.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.0",
