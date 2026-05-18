@@ -20,7 +20,9 @@ type LeadDeskTask = {
   status: string
   client_id: string
   route_target: string
+  routing_target: string
   operator_summary: string
+  next_action: string
   created_at: string
   qualification: {
     tier: 'hot' | 'warm' | 'cold'
@@ -36,6 +38,12 @@ type LeadDeskTask = {
     response_excerpt?: string | null
   }
   follow_up_actions: string[]
+  heartbeat_summary: {
+    status: string
+    next_due_at: string
+    summary: string
+    pending_task_ids: string[]
+  }
 }
 
 type LeadDeskPayload = {
@@ -391,8 +399,21 @@ export default function LeadDeskPage() {
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
                         <MiniCard label="Score" value={`${task.qualification.score}`} />
-                        <MiniCard label="Route" value={task.route_target} />
+                        <MiniCard label="Route" value={task.routing_target ?? task.route_target} />
+                        <MiniCard label="Next" value={task.next_action} />
                         <MiniCard label="Dispatch" value={task.hermes_dispatch.status} />
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-300">
+                            Heartbeat {task.heartbeat_summary.status}
+                          </p>
+                          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
+                            {task.heartbeat_summary.pending_task_ids.length} pending
+                          </p>
+                        </div>
+                        <p className="mt-2 text-sm text-white/65">{task.heartbeat_summary.summary}</p>
                       </div>
 
                       <div className="mt-4 rounded-2xl border border-white/10 bg-[#050810] px-4 py-3">
