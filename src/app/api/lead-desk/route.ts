@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify(body),
       cache: 'no-store',
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     })
 
     const payload = (await response.json()) as Record<string, unknown>
@@ -146,7 +146,7 @@ export async function PATCH(request: NextRequest) {
         note: body.note,
       }),
       cache: 'no-store',
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     })
 
     const payload = (await response.json()) as Record<string, unknown>
