@@ -319,6 +319,16 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
     if dispatch.response_excerpt:
         operator_summary = f"{operator_summary} Hermes response: {dispatch.response_excerpt[:220]}".strip()
 
+    heartbeat = HeartbeatSummary(
+        heartbeat_id=f"hb-{uuid4().hex[:8]}",
+        client_id=client.client_id,
+        workflow_id="lead-desk",
+        status="watching",
+        next_due_at=utc_now(),
+        summary=f"{qualification.tier.title()} lead {task_status} on {route_target}",
+        pending_task_ids=[task_id],
+    )
+
     task = LeadDeskTask(
         task_id=task_id,
         client_id=client.client_id,
@@ -330,11 +340,14 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
         submission=submission,
         qualification=LeadQualification(**asdict(qualification)),
         operator_summary=operator_summary,
+        next_action=qualification.next_action,
         follow_up_actions=follow_up_actions,
         route_target=route_target,
+        routing_target=route_target,
         hermes_profile=client.hermes.profile_name,
         workspace_files=[],
         hermes_dispatch=dispatch,
+        heartbeat_summary=heartbeat,
     )
 
     task_payload = task.model_dump()
@@ -346,15 +359,6 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
     save_tasks(tasks)
 
     heartbeats = load_heartbeats()
-    heartbeat = HeartbeatSummary(
-        heartbeat_id=f"hb-{uuid4().hex[:8]}",
-        client_id=client.client_id,
-        workflow_id="lead-desk",
-        status="watching",
-        next_due_at=utc_now(),
-        summary=f"{qualification.tier.title()} lead {task.status} on {route_target}",
-        pending_task_ids=[task.task_id],
-    )
     heartbeats = [item for item in heartbeats if item.client_id != client.client_id or item.workflow_id != "lead-desk"]
     heartbeats.append(heartbeat)
     save_heartbeats(heartbeats)
@@ -405,11 +409,18 @@ def update_task_status(task_id: str, status: str, note: str | None = None) -> Le
         raise KeyError(task_id)
 
     save_tasks(updated_tasks)
-    _sync_heartbeat_for_task(updated_task)
+    heartbeat = _sync_heartbeat_for_task(updated_task)
+    updated_task = updated_task.model_copy(update={"heartbeat_summary": heartbeat})
+    save_tasks(
+        [
+            updated_task.model_dump() if task.get("task_id") == task_id else task
+            for task in updated_tasks
+        ]
+    )
     return updated_task
 
 
-def _sync_heartbeat_for_task(task: LeadDeskTask) -> None:
+def _sync_heartbeat_for_task(task: LeadDeskTask) -> HeartbeatSummary:
     heartbeats = load_heartbeats()
     remaining_task_ids = [
         item.task_id
@@ -436,22 +447,51 @@ def _sync_heartbeat_for_task(task: LeadDeskTask) -> None:
     heartbeats = [item for item in heartbeats if item.client_id != task.client_id or item.workflow_id != task.workflow_id]
     heartbeats.append(heartbeat)
     save_heartbeats(heartbeats)
+    return heartbeat
 
 
 def _normalize_task_payload(task: dict[str, Any]) -> dict[str, Any]:
-    if "hermes_dispatch" in task:
-        return task
-
     task = dict(task)
-    task["hermes_dispatch"] = {
-        "status": "legacy-unknown",
-        "provider": hermes_vendor.DEFAULT_PROVIDER,
-        "model": hermes_vendor.DEFAULT_MODEL,
-        "configured": hermes_vendor.provider_configured(),
-        "notes": ["This task was created before Hermes dispatch metadata was added to MAXX."],
-        "response_excerpt": None,
-    }
+    if "hermes_dispatch" not in task:
+        task["hermes_dispatch"] = {
+            "status": "legacy-unknown",
+            "provider": hermes_vendor.DEFAULT_PROVIDER,
+            "model": hermes_vendor.DEFAULT_MODEL,
+            "configured": hermes_vendor.provider_configured(),
+            "notes": ["This task was created before Hermes dispatch metadata was added to MAXX."],
+            "response_excerpt": None,
+        }
+
+    qualification = task.get("qualification") if isinstance(task.get("qualification"), dict) else {}
+    task.setdefault("next_action", qualification.get("next_action", "operator-follow-up"))
+    task.setdefault("routing_target", task.get("route_target", "operator-sequence"))
+    task.setdefault("route_target", task.get("routing_target", "operator-sequence"))
+    task.setdefault("heartbeat_summary", _heartbeat_for_task_payload(task).model_dump())
     return task
+
+
+def _heartbeat_for_task_payload(task: dict[str, Any]) -> HeartbeatSummary:
+    task_id = str(task.get("task_id", ""))
+    client_id = str(task.get("client_id", ""))
+    workflow_id = str(task.get("workflow_id", "lead-desk"))
+
+    for heartbeat in load_heartbeats():
+        if (
+            heartbeat.client_id == client_id
+            and heartbeat.workflow_id == workflow_id
+            and task_id in heartbeat.pending_task_ids
+        ):
+            return heartbeat
+
+    return HeartbeatSummary(
+        heartbeat_id=f"hb-derived-{task_id or 'unknown'}",
+        client_id=client_id,
+        workflow_id=workflow_id,
+        status="watching" if task.get("status") != "completed" else "clear",
+        next_due_at=str(task.get("updated_at") or utc_now()),
+        summary=f"Lead Desk task {task_id or 'unknown'} is {task.get('status', 'queued')}",
+        pending_task_ids=[] if task.get("status") == "completed" else [task_id],
+    )
 
 
 def runtime_routes() -> list[RuntimeRoute]:

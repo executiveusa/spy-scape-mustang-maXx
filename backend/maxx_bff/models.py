@@ -141,6 +141,16 @@ class HermesDispatchResult(BaseModel):
     response_excerpt: str | None = None
 
 
+class HeartbeatSummary(BaseModel):
+    heartbeat_id: str
+    client_id: str
+    workflow_id: str
+    status: str
+    next_due_at: str
+    summary: str
+    pending_task_ids: list[str]
+
+
 class LeadDeskTask(BaseModel):
     task_id: str
     client_id: str
@@ -152,26 +162,19 @@ class LeadDeskTask(BaseModel):
     submission: LeadDeskSubmission
     qualification: LeadQualification
     operator_summary: str
+    next_action: str
     follow_up_actions: list[str]
     route_target: str
+    routing_target: str
     hermes_profile: str
     workspace_files: list[str]
     hermes_dispatch: HermesDispatchResult
+    heartbeat_summary: HeartbeatSummary
 
 
 class LeadDeskStatusUpdate(BaseModel):
     status: LeadTaskStatus
     note: str | None = None
-
-
-class HeartbeatSummary(BaseModel):
-    heartbeat_id: str
-    client_id: str
-    workflow_id: str
-    status: str
-    next_due_at: str
-    summary: str
-    pending_task_ids: list[str]
 
 
 class RuntimeNote(BaseModel):

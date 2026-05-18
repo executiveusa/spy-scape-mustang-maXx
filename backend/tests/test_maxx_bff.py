@@ -165,7 +165,11 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertEqual(task["workflow_id"], "lead-desk")
         self.assertGreaterEqual(task["qualification"]["score"], 75)
         self.assertEqual(task["qualification"]["tier"], "hot")
-        self.assertIn(task["status"], {"queued", "completed", "blocked", "attention"})
+        self.assertIn(task["status"], {"triaged", "queued", "completed", "blocked", "attention"})
+        self.assertEqual(task["next_action"], "route-to-calendar")
+        self.assertEqual(task["routing_target"], "sales-calendar")
+        self.assertEqual(task["heartbeat_summary"]["workflow_id"], "lead-desk")
+        self.assertIn(task["task_id"], task["heartbeat_summary"]["pending_task_ids"])
         self.assertEqual(len(task["workspace_files"]), 2)
         self.assertIn("hermes_dispatch", task)
         self.assertIn(
@@ -187,6 +191,8 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         updated_task = update_response.json()
         self.assertEqual(updated_task["status"], "follow-up")
         self.assertIn("Operator note: Operator started follow-up.", updated_task["follow_up_actions"])
+        self.assertEqual(updated_task["heartbeat_summary"]["status"], "watching")
+        self.assertIn(updated_task["task_id"], updated_task["heartbeat_summary"]["pending_task_ids"])
 
         runtime_response = self.client.get("/v1/runtime")
         self.assertEqual(runtime_response.status_code, 200)
@@ -195,6 +201,39 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertTrue(runtime["workflow_packs"])
         self.assertTrue(runtime["heartbeats"])
         self.assertTrue(runtime["providers"])
+
+    def test_lead_desk_task_and_heartbeat_survive_app_restart(self) -> None:
+        self.client.post("/v1/clients/maxx-demo/provision")
+
+        create_response = self.client.post(
+            "/v1/lead-desk/tasks",
+            json={
+                "client_id": "maxx-demo",
+                "contact_name": "Riley Restart",
+                "company": "Persistence Co",
+                "email": "riley@example.com",
+                "message": "We need a smart site and lead follow-up system that survives backend restarts.",
+                "requested_service": "lead-desk",
+                "timeline": "this week",
+                "preferred_channel": "email",
+                "source": "site",
+            },
+        )
+        self.assertEqual(create_response.status_code, 200)
+        task = create_response.json()
+        self.assertTrue((self.data_dir / "maxx.db").exists())
+
+        for name in [key for key in sys.modules if key.startswith("maxx_bff")]:
+            sys.modules.pop(name, None)
+        restarted_main = importlib.import_module("maxx_bff.main")
+        restarted_client = TestClient(restarted_main.app)
+
+        persisted_response = restarted_client.get(f"/v1/lead-desk/tasks/{task['task_id']}")
+        self.assertEqual(persisted_response.status_code, 200)
+        persisted = persisted_response.json()
+        self.assertEqual(persisted["task_id"], task["task_id"])
+        self.assertEqual(persisted["heartbeat_summary"]["workflow_id"], "lead-desk")
+        self.assertIn(task["task_id"], persisted["heartbeat_summary"]["pending_task_ids"])
 
     def test_production_cors_warning_when_origins_are_missing(self) -> None:
         self.tearDown()
