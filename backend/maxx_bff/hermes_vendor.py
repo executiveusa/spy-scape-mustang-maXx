@@ -18,7 +18,7 @@ DEFAULT_VENDOR_PATH = Path(
 ).resolve()
 DEFAULT_PROVIDER = os.environ.get("MAXX_HERMES_PROVIDER", "openrouter")
 DEFAULT_MODEL = os.environ.get("MAXX_HERMES_MODEL", "openrouter/owl-alpha")
-DEFAULT_DISPATCH_TIMEOUT_SECONDS = float(os.environ.get("MAXX_HERMES_SYNC_TIMEOUT_SECONDS", "20"))
+DEFAULT_DISPATCH_TIMEOUT_SECONDS = float(os.environ.get("MAXX_HERMES_SYNC_TIMEOUT_SECONDS", "3"))
 DEFAULT_RUNTIME_HOME = Path(
     os.environ.get(
         "MAXX_HERMES_HOME",

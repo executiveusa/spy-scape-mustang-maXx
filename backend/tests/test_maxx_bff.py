@@ -235,6 +235,10 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertEqual(persisted["heartbeat_summary"]["workflow_id"], "lead-desk")
         self.assertIn(task["task_id"], persisted["heartbeat_summary"]["pending_task_ids"])
 
+    def test_lead_desk_default_dispatch_budget_defers_before_frontend_timeout(self) -> None:
+        hermes_vendor = importlib.import_module("maxx_bff.hermes_vendor")
+        self.assertLessEqual(hermes_vendor.DEFAULT_DISPATCH_TIMEOUT_SECONDS, 4)
+
     def test_production_cors_warning_when_origins_are_missing(self) -> None:
         self.tearDown()
         self.setUp()
