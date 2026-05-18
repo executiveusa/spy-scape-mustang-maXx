@@ -17,14 +17,23 @@ export type OperatorSession = {
 
 const encoder = new TextEncoder()
 
+function base64EncodeBytes(bytes: Uint8Array) {
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
+  return globalThis.btoa(binary)
+}
+
 function base64UrlEncode(value: string) {
-  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+  return base64EncodeBytes(encoder.encode(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function base64UrlEncodeBytes(bytes: Uint8Array) {
+  return base64EncodeBytes(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
 function base64UrlDecode(value: string) {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
-  return atob(padded)
+  return globalThis.atob(padded)
 }
 
 function sessionSecret() {
@@ -36,16 +45,20 @@ export function isOperatorAuthConfigured() {
 }
 
 async function signPayload(payload: string, secret: string) {
-  const key = await crypto.subtle.importKey(
+  const subtle = globalThis.crypto?.subtle
+  if (!subtle) {
+    throw new Error('Web Crypto is required for operator session signing.')
+  }
+
+  const key = await subtle.importKey(
     'raw',
     encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
   )
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload))
-  const bytes = Array.from(new Uint8Array(signature), (byte) => String.fromCharCode(byte)).join('')
-  return base64UrlEncode(bytes)
+  const signature = await subtle.sign('HMAC', key, encoder.encode(payload))
+  return base64UrlEncodeBytes(new Uint8Array(signature))
 }
 
 export async function createOperatorSession(tenantId = 'maxx-demo') {
