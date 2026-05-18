@@ -16,10 +16,22 @@ export type OperatorSession = {
 }
 
 const encoder = new TextEncoder()
+const decoder = new TextDecoder()
+const base64Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
 function base64EncodeBytes(bytes: Uint8Array) {
-  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
-  return globalThis.btoa(binary)
+  let output = ''
+  for (let index = 0; index < bytes.length; index += 3) {
+    const first = bytes[index]
+    const second = bytes[index + 1]
+    const third = bytes[index + 2]
+    const triple = (first << 16) | ((second ?? 0) << 8) | (third ?? 0)
+    output += base64Alphabet[(triple >> 18) & 63]
+    output += base64Alphabet[(triple >> 12) & 63]
+    output += index + 1 < bytes.length ? base64Alphabet[(triple >> 6) & 63] : '='
+    output += index + 2 < bytes.length ? base64Alphabet[triple & 63] : '='
+  }
+  return output
 }
 
 function base64UrlEncode(value: string) {
@@ -33,7 +45,22 @@ function base64UrlEncodeBytes(bytes: Uint8Array) {
 function base64UrlDecode(value: string) {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
-  return globalThis.atob(padded)
+  const bytes: number[] = []
+  for (let index = 0; index < padded.length; index += 4) {
+    const first = base64Alphabet.indexOf(padded[index])
+    const second = base64Alphabet.indexOf(padded[index + 1])
+    const third = padded[index + 2] === '=' ? 0 : base64Alphabet.indexOf(padded[index + 2])
+    const fourth = padded[index + 3] === '=' ? 0 : base64Alphabet.indexOf(padded[index + 3])
+    const triple = (first << 18) | (second << 12) | (third << 6) | fourth
+    bytes.push((triple >> 16) & 255)
+    if (padded[index + 2] !== '=') {
+      bytes.push((triple >> 8) & 255)
+    }
+    if (padded[index + 3] !== '=') {
+      bytes.push(triple & 255)
+    }
+  }
+  return decoder.decode(new Uint8Array(bytes))
 }
 
 function sessionSecret() {
