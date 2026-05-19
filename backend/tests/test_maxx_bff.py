@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -301,6 +302,67 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         web_health = self.client.get("/v1/maxx/web-research/health")
         self.assertEqual(web_health.status_code, 200)
         self.assertIn(web_health.json()["status"], {"online", "warning"})
+
+    def test_web_research_uses_firecrawl_when_configured(self) -> None:
+        os.environ["FIRECRAWL_API_KEY"] = "test-firecrawl-key"
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return None
+
+            def read(self) -> bytes:
+                return b"""
+                {
+                  "success": true,
+                  "data": [
+                    {
+                      "title": "Austin Founder Lead Desk Agency",
+                      "url": "https://example.com/austin-founder",
+                      "description": "Founder in Austin looking for Lead Desk automation and smart site routing."
+                    }
+                  ]
+                }
+                """
+
+        with patch("maxx_bff.lead_acquisition_drivers.request.urlopen", return_value=FakeResponse()):
+            response = self.client.post(
+                "/v1/lead-acquisition/jobs",
+                json={
+                    "client_id": "maxx-demo",
+                    "source": "web-research",
+                    "query": "Austin founder Lead Desk automation",
+                    "max_records": 1,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        job = response.json()
+        self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["discovered_count"], 1)
+        self.assertIn("Search completed", " ".join(job["events"]))
+
+        prospects = self.client.get("/v1/lead-acquisition/prospects?client_id=maxx-demo").json()["prospects"]
+        self.assertEqual(len(prospects), 1)
+        self.assertEqual(prospects[0]["source"], "web-research")
+        self.assertEqual(prospects[0]["organization_domain"], "example.com")
+        self.assertTrue(prospects[0]["evidence"])
+
+    def test_web_research_target_url_respects_allowlist(self) -> None:
+        os.environ["FIRECRAWL_API_KEY"] = "test-firecrawl-key"
+        response = self.client.post(
+            "/v1/lead-acquisition/jobs",
+            json={
+                "client_id": "maxx-demo",
+                "source": "web-research",
+                "query": "Do not leave tenant allowlist",
+                "target_url": "https://not-allowed.invalid/company",
+                "max_records": 1,
+            },
+        )
+        self.assertEqual(response.status_code, 403)
 
     def test_lead_desk_task_and_heartbeat_survive_app_restart(self) -> None:
         self.client.post("/v1/clients/maxx-demo/provision")
