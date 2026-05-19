@@ -8,10 +8,13 @@ $required = @(
   'MAXX_ENV',
   'MAXX_ALLOWED_ORIGINS',
   'MAXX_DATA_DIR',
-  'MAXX_HERMES_HOME',
-  'MAXX_HERMES_VENDOR_PATH',
-  'MAXX_HERMES_PROVIDER',
-  'MAXX_HERMES_MODEL'
+)
+
+$runtimePairs = @(
+  @{ preferred = 'MAXX_RUNTIME_HOME'; legacy = 'MAXX_HERMES_HOME' },
+  @{ preferred = 'MAXX_RUNTIME_VENDOR_PATH'; legacy = 'MAXX_HERMES_VENDOR_PATH' },
+  @{ preferred = 'MAXX_RUNTIME_PROVIDER'; legacy = 'MAXX_HERMES_PROVIDER' },
+  @{ preferred = 'MAXX_RUNTIME_MODEL'; legacy = 'MAXX_HERMES_MODEL' }
 )
 
 if ($RequireSecret) {
@@ -26,13 +29,34 @@ foreach ($name in $required) {
   }
 }
 
+foreach ($pair in $runtimePairs) {
+  if (-not [Environment]::GetEnvironmentVariable($pair.preferred) -and -not [Environment]::GetEnvironmentVariable($pair.legacy)) {
+    $missing += "$($pair.preferred) or $($pair.legacy)"
+  }
+}
+
+$legacyRuntimeVars = @(
+  'MAXX_HERMES_HOME',
+  'MAXX_HERMES_VENDOR_PATH',
+  'MAXX_HERMES_PROVIDER',
+  'MAXX_HERMES_MODEL'
+)
+foreach ($legacyName in $legacyRuntimeVars) {
+  if ([Environment]::GetEnvironmentVariable($legacyName)) {
+    Write-Warning "$legacyName is supported for one compatibility release; prefer MAXX_RUNTIME_* going forward."
+  }
+}
+
 if ($missing.Count -gt 0) {
   Write-Error "Missing required backend environment variable(s): $($missing -join ', ')"
 }
 
-$vendorPath = [Environment]::GetEnvironmentVariable('MAXX_HERMES_VENDOR_PATH')
+$vendorPath = [Environment]::GetEnvironmentVariable('MAXX_RUNTIME_VENDOR_PATH')
+if (-not $vendorPath) {
+  $vendorPath = [Environment]::GetEnvironmentVariable('MAXX_HERMES_VENDOR_PATH')
+}
 if ($vendorPath -and -not (Test-Path $vendorPath)) {
-  Write-Error "MAXX_HERMES_VENDOR_PATH does not exist: $vendorPath"
+  Write-Error "MAXX_RUNTIME_VENDOR_PATH does not exist: $vendorPath"
 }
 
 $allowedOrigins = [Environment]::GetEnvironmentVariable('MAXX_ALLOWED_ORIGINS')

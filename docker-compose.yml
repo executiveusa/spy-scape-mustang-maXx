@@ -13,15 +13,15 @@ services:
       - MAXX_ENV=production
       - MAXX_ALLOWED_ORIGINS=${MAXX_ALLOWED_ORIGINS:-http://127.0.0.1:3000,http://127.0.0.1:3011}
       - MAXX_DATA_DIR=/data/maxx
-      - MAXX_HERMES_HOME=/runtime/hermes
-      - MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent
-      - MAXX_HERMES_PROVIDER=${MAXX_HERMES_PROVIDER:-openrouter}
-      - MAXX_HERMES_MODEL=${MAXX_HERMES_MODEL:-openrouter/owl-alpha}
+      - MAXX_RUNTIME_HOME=/runtime/maxx
+      - MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
+      - MAXX_RUNTIME_PROVIDER=${MAXX_RUNTIME_PROVIDER:-openrouter}
+      - MAXX_RUNTIME_MODEL=${MAXX_RUNTIME_MODEL:-openrouter/owl-alpha}
       - MAXX_OPENROUTER_API_KEY=${MAXX_OPENROUTER_API_KEY:-}
     volumes:
       - maxx-data:/data/maxx
-      - maxx-hermes-runtime:/runtime/hermes
-      - ${MAXX_HERMES_VENDOR_HOST_PATH:-./vendors/hermes-agent}:/opt/hermes-agent:ro
+      - maxx-runtime:/runtime/maxx
+      - ${MAXX_RUNTIME_VENDOR_HOST_PATH:-./vendors/hermes-agent}:/opt/agent-maxx-runtime:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=5).read()"]
@@ -74,4 +74,4 @@ services:
 
 volumes:
   maxx-data:
-  maxx-hermes-runtime:
+  maxx-runtime:

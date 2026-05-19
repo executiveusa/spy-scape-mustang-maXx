@@ -67,7 +67,7 @@ const fallbackState: DeployState = {
   blockers: [
     'Backend link is unavailable, so this page is using fallback deployment data.',
     'App-level auth is deferred; the BFF must stay private.',
-    'Hermes vendor path and provider credentials must be verified before model-backed execution is claimed.',
+    'Agent MAXX runtime path and provider credentials must be verified before model-backed execution is claimed.',
     'Final MAXX-owned art is still placeholder-driven.',
   ],
 }

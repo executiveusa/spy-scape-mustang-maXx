@@ -9,8 +9,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV MAXX_ENV=production
 ENV MAXX_DATA_DIR=/data/maxx
-ENV MAXX_HERMES_HOME=/runtime/hermes
-ENV MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent
+ENV MAXX_RUNTIME_HOME=/runtime/maxx
+ENV MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
 
 WORKDIR /app
 
@@ -23,13 +23,13 @@ RUN useradd --create-home --uid 10001 maxx
 COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN git clone --depth=1 --branch "$HERMES_AGENT_REF" "$HERMES_AGENT_REPO" /opt/hermes-agent && \
-    pip install --no-cache-dir -e /opt/hermes-agent
+RUN git clone --depth=1 --branch "$HERMES_AGENT_REF" "$HERMES_AGENT_REPO" /opt/agent-maxx-runtime && \
+    pip install --no-cache-dir -e /opt/agent-maxx-runtime
 
 COPY maxx_bff ./maxx_bff
 
-RUN mkdir -p /data/maxx /runtime/hermes /opt/hermes-agent && \
-    chown -R maxx:maxx /app /data/maxx /runtime/hermes /opt/hermes-agent
+RUN mkdir -p /data/maxx /runtime/maxx /opt/agent-maxx-runtime && \
+    chown -R maxx:maxx /app /data/maxx /runtime/maxx /opt/agent-maxx-runtime
 
 USER maxx
 

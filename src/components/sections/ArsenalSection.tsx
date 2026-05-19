@@ -94,8 +94,8 @@ export default function ArsenalSection() {
               Lead Desk routing, and degraded-state guardrails.
             </p>
             <p className="text-gray-500 text-sm leading-relaxed">
-              MAXX is a wrapper around Hermes for this use case: one branded smart site,
-              one tenant-scoped Hermes profile, and one sellable Lead Desk employee that can
+              Agent MAXX is the runtime harness for this use case: one branded smart site,
+              one tenant-scoped MAXX profile, and one sellable Lead Desk employee that can
               capture, qualify, route, and summarize inbound inquiries today.
             </p>
           </motion.div>

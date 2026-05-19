@@ -22,7 +22,7 @@ export async function GET() {
     url: bffUrl,
     online: false,
     status: 'unreachable',
-    hermes: 'unknown',
+    runtime: 'unknown',
   }
 
   try {
@@ -33,12 +33,12 @@ export async function GET() {
     })
 
     if (response.ok) {
-      const payload = (await response.json()) as { status?: string; service?: string; hermes?: string }
+      const payload = (await response.json()) as { status?: string; service?: string; runtime?: string }
       backend = {
         url: bffUrl,
         online: true,
         status: payload.status ?? 'ok',
-        hermes: payload.hermes ?? 'unknown',
+        runtime: payload.runtime ?? 'unknown',
       }
 
       return NextResponse.json({
@@ -54,14 +54,14 @@ export async function GET() {
       url: bffUrl,
       online: false,
       status: `http-${response.status}`,
-      hermes: 'unknown',
+      runtime: 'unknown',
     }
   } catch {
     backend = {
       url: bffUrl,
       online: false,
       status: 'unreachable',
-      hermes: 'unknown',
+      runtime: 'unknown',
     }
   }
 

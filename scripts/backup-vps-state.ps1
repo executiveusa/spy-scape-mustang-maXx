@@ -15,8 +15,8 @@ $archiveName = "agent-maxx-vps-state-$stamp.tgz"
 $remoteArchive = "/tmp/$archiveName"
 $localArchive = Join-Path $resolvedOutput $archiveName
 
-Write-Host "Creating VPS backup for /data/maxx and /runtime/hermes..."
-ssh $SshTarget "sudo tar -czf $remoteArchive /data/maxx /runtime/hermes"
+Write-Host "Creating VPS backup for /data/maxx and /runtime/maxx..."
+ssh $SshTarget "sudo tar -czf $remoteArchive /data/maxx /runtime/maxx"
 scp "${SshTarget}:$remoteArchive" $localArchive
 ssh $SshTarget "rm -f $remoteArchive"
 

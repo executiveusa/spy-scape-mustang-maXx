@@ -7,14 +7,15 @@ This folder is the backend landing zone for the Agent MAXX smart-site platform.
 The public shell, deploy console, asset pipeline, and command deck now have enough surface area that the repo needs a tenant-aware control plane instead of mock references.
 
 - `src/` stays the frontend application
-- `backend/` holds the FastAPI MAXX control plane and Hermes-facing adapters
+- `backend/` holds the FastAPI MAXX control plane and private runtime adapters
 
 ## Files
 
 - `requirements.txt` - minimal Python runtime dependencies
 - `maxx_bff/main.py` - FastAPI entry point
 - `maxx_bff/control_plane.py` - tenant-aware Lead Desk orchestration
-- `maxx_bff/hermes_vendor.py` - Hermes profile control adapter
+- `maxx_bff/maxx_runtime.py` - Agent MAXX runtime service boundary
+- private vendor driver adapter kept behind the MAXX boundary
 - `maxx_bff/storage.py` - SQLite-backed tenant/task/workflow persistence with JSON migration
 - `maxx_bff/settings.py` - environment, CORS, and production warning policy
 - `tests/test_maxx_bff.py` - backend integration tests
@@ -22,8 +23,9 @@ The public shell, deploy console, asset pipeline, and command deck now have enou
 ## Live control-plane endpoints
 
 - `GET /health`
-- `GET /v1/hermes/health`
-- `GET /v1/hermes/profiles`
+- `GET /v1/maxx/runtime/health`
+- `GET /v1/maxx/runtime/profiles`
+- `GET /v1/maxx/runtime/providers`
 - `GET /v1/meta`
 - `GET /v1/access`
 - `GET /v1/routes`
@@ -50,16 +52,16 @@ MAXX_ENV=production
 MAXX_ALLOWED_ORIGINS=https://your-vercel-production-domain,https://your-vercel-preview-domain
 MAXX_BFF_SHARED_SECRET=replace-with-a-generated-32-byte-secret
 MAXX_DATA_DIR=/data/maxx
-MAXX_HERMES_HOME=/runtime/hermes
-MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent
-MAXX_HERMES_PROVIDER=openrouter
-MAXX_HERMES_MODEL=openrouter/owl-alpha
+MAXX_RUNTIME_HOME=/runtime/maxx
+MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
+MAXX_RUNTIME_PROVIDER=openrouter
+MAXX_RUNTIME_MODEL=openrouter/owl-alpha
 MAXX_OPENROUTER_API_KEY=...
 ```
 
 Use `backend/coolify.json` when creating the private backend app in Coolify. The root `coolify.json` is for the public frontend and should not be reused for the BFF.
 
-The root `docker-compose.yml` includes `agent-maxx-bff` with persistent volumes for tenant data and Hermes runtime state. The service binds to `127.0.0.1:${BFF_PORT:-8010}:8010` by default so it is private to the host unless deliberately exposed through a tunnel, proxy, or firewall rule.
+The root `docker-compose.yml` includes `agent-maxx-bff` with persistent volumes for tenant data and Agent MAXX runtime state. The service binds to `127.0.0.1:${BFF_PORT:-8010}:8010` by default so it is private to the host unless deliberately exposed through a tunnel, proxy, or firewall rule.
 
 ## Run locally
 
@@ -87,9 +89,9 @@ That brings up both:
 ## What is still missing
 
 - app-level production auth
-- provider-backed Hermes execution credentials
-- richer memory adapters beyond Hermes profile homes
+- provider-backed Agent MAXX execution credentials
+- richer memory adapters beyond Agent MAXX profile homes
 - real deployment action adapters
 - role-based multitenant operator access
 
-This backend supports the v1 MAXX capability: multi-tenant Lead Desk operations backed by Hermes profile homes on one server. It can be used for a controlled production demo only when the BFF is private or shared-secret protected, persistent volumes are configured, and `/v1/hermes/health.execution_ready` is true.
+This backend supports the v1 MAXX capability: multi-tenant Lead Desk operations backed by Agent MAXX profile homes on one server. It can be used for a controlled production demo only when the BFF is private or shared-secret protected, persistent volumes are configured, and `/v1/maxx/runtime/health.execution_ready` is true.

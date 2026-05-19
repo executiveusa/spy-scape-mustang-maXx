@@ -19,7 +19,7 @@ $remoteArchive = "/tmp/$archiveName"
 Write-Host "Uploading backup archive..."
 scp $BackupArchive "${SshTarget}:$remoteArchive"
 
-Write-Host "Restoring /data/maxx and /runtime/hermes on VPS..."
-ssh $SshTarget "sudo mkdir -p /data/maxx /runtime/hermes && sudo tar -xzf $remoteArchive -C / && sudo rm -f $remoteArchive"
+Write-Host "Restoring /data/maxx and /runtime/maxx on VPS..."
+ssh $SshTarget "sudo mkdir -p /data/maxx /runtime/maxx && sudo tar -xzf $remoteArchive -C / && sudo rm -f $remoteArchive"
 
 Write-Host "Restore finished. Redeploy or restart the Coolify backend before verification."

@@ -4,6 +4,7 @@ param(
   [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET,
   [string]$OperatorPassword = $env:MAXX_OPERATOR_PASSWORD,
   [switch]$RequireLiveStack,
+  [switch]$RequireMaxxRuntimeExecutionReady,
   [switch]$RequireHermesExecutionReady
 )
 
@@ -90,6 +91,13 @@ try {
     }
   }
 
+  Invoke-Step "Agent MAXX visible identity contract" {
+    npm run test:maxx-visible-identity
+    if ($LASTEXITCODE -ne 0) {
+      throw "Agent MAXX visible identity contract failed with exit code $LASTEXITCODE."
+    }
+  }
+
   Invoke-Step "Next.js production build" {
     npm run build
     if ($LASTEXITCODE -ne 0) {
@@ -116,7 +124,7 @@ try {
       if (-not $health.service -or $health.service -ne 'agent-maxx-bff') {
         throw "Unexpected BFF health payload from $BackendUrl/health"
       }
-      Write-Host "BFF status: $($health.status); Hermes: $($health.hermes)"
+      Write-Host "BFF status: $($health.status); runtime: $($health.runtime)"
       $script:backendReachable = $true
     }
   } catch {
@@ -130,8 +138,8 @@ try {
     if ($BffSharedSecret) {
       Invoke-Step "BFF shared-secret gate" {
         try {
-          Invoke-WebRequest -UseBasicParsing -Uri "$BackendUrl/v1/hermes/health" -TimeoutSec 15 | Out-Null
-          throw "Unauthenticated /v1/hermes/health unexpectedly succeeded."
+          Invoke-WebRequest -UseBasicParsing -Uri "$BackendUrl/v1/maxx/runtime/health" -TimeoutSec 15 | Out-Null
+          throw "Unauthenticated /v1/maxx/runtime/health unexpectedly succeeded."
         } catch {
           if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) {
             Write-Host "Unauthenticated /v1 requests are rejected."
@@ -144,18 +152,18 @@ try {
       Write-Warning "MAXX_BFF_SHARED_SECRET is not set for verification; skipping unauthorized /v1 gate check."
     }
 
-    Invoke-Step "Hermes runtime readiness" {
-      $hermes = Invoke-JsonGet "$BackendUrl/v1/hermes/health"
-      Write-Host "Hermes status: $($hermes.status); execution_ready: $($hermes.execution_ready)"
-      if ($RequireHermesExecutionReady -and -not $hermes.execution_ready) {
-        throw "Hermes execution_ready is false. Resolve vendor path and provider credentials before launch."
+    Invoke-Step "Agent MAXX runtime readiness" {
+      $runtime = Invoke-JsonGet "$BackendUrl/v1/maxx/runtime/health"
+      Write-Host "Agent MAXX runtime status: $($runtime.status); execution_ready: $($runtime.execution_ready)"
+      if (($RequireMaxxRuntimeExecutionReady -or $RequireHermesExecutionReady) -and -not $runtime.execution_ready) {
+        throw "Agent MAXX runtime execution_ready is false. Resolve runtime path and provider credentials before launch."
       }
     }
 
     Invoke-Step "Agent MAXX wrapper readiness" {
       $readiness = Invoke-JsonGet "$BackendUrl/v1/maxx/readiness"
-      if ($readiness.runtime_wrapper.base_runtime -ne 'Hermes Agent') {
-        throw "MAXX readiness endpoint did not report Hermes Agent as the base runtime."
+      if ($readiness.runtime_wrapper.base_runtime -ne 'Agent MAXX Runtime') {
+        throw "MAXX readiness endpoint did not report Agent MAXX Runtime as the base runtime."
       }
       if (-not $readiness.can_run_today) {
         throw "Agent MAXX is not ready to run today: $($readiness.blockers -join '; ')"

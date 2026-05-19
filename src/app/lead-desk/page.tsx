@@ -29,7 +29,7 @@ type LeadDeskTask = {
     score: number
     next_action: string
   }
-  hermes_dispatch: {
+  maxx_dispatch: {
     status: string
     provider: string
     model: string
@@ -140,7 +140,7 @@ export default function LeadDeskPage() {
 
       const nextTask = result as LeadDeskTask
       setSubmitMessage(
-        `Lead Desk task ${nextTask.task_id} created as ${nextTask.status}. Hermes dispatch: ${nextTask.hermes_dispatch.status}.`,
+        `Lead Desk task ${nextTask.task_id} created as ${nextTask.status}. Agent MAXX dispatch: ${nextTask.maxx_dispatch.status}.`,
       )
       setForm(emptyForm)
       await loadLeadDesk()
@@ -197,7 +197,7 @@ export default function LeadDeskPage() {
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70 sm:text-base">
               This is the first true employee surface in Agent MAXX. It captures an inquiry, qualifies
-              it, records the tenant context, and shows the operator exactly what Hermes did or did not do.
+              it, records the tenant context, and shows the operator exactly what Agent MAXX did or did not do.
             </p>
           </div>
 
@@ -224,7 +224,7 @@ export default function LeadDeskPage() {
           <MetricCard label="Open Tasks" value={`${tasks.length}`} detail="Visible operator queue for the demo tenant." />
           <MetricCard label="Hot Leads" value={`${hotTasks}`} detail="Near-term opportunities routed toward calendar action." />
           <MetricCard
-            label="Hermes Router"
+            label="MAXX Runtime"
             value={provider?.configured ? 'ready' : 'degraded'}
             detail={provider?.configured ? provider.model : 'OpenRouter key still missing for live execution.'}
           />
@@ -401,7 +401,7 @@ export default function LeadDeskPage() {
                         <MiniCard label="Score" value={`${task.qualification.score}`} />
                         <MiniCard label="Route" value={task.routing_target ?? task.route_target} />
                         <MiniCard label="Next" value={task.next_action} />
-                        <MiniCard label="Dispatch" value={task.hermes_dispatch.status} />
+                        <MiniCard label="Dispatch" value={task.maxx_dispatch.status} />
                       </div>
 
                       <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] px-4 py-3">
@@ -430,20 +430,20 @@ export default function LeadDeskPage() {
                         </div>
                       </div>
 
-                      {!task.hermes_dispatch.configured ? (
+                      {!task.maxx_dispatch.configured ? (
                         <div className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200">
                           <div className="flex items-start gap-2">
                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-300" />
-                            <span>{task.hermes_dispatch.notes[0] ?? 'Provider configuration is still missing.'}</span>
+                            <span>{task.maxx_dispatch.notes[0] ?? 'Provider configuration is still missing.'}</span>
                           </div>
                         </div>
-                      ) : task.hermes_dispatch.response_excerpt ? (
+                      ) : task.maxx_dispatch.response_excerpt ? (
                         <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
                           <div className="mb-2 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-300">
                             <UserRound className="h-3.5 w-3.5" />
-                            Hermes output
+                            Agent MAXX output
                           </div>
-                          {task.hermes_dispatch.response_excerpt}
+                          {task.maxx_dispatch.response_excerpt}
                         </div>
                       ) : null}
 

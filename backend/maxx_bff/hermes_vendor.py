@@ -12,17 +12,23 @@ from .models import HermesDispatchResult, HermesProfileBinding, HermesRuntimeHea
 
 DEFAULT_VENDOR_PATH = Path(
     os.environ.get(
-        "MAXX_HERMES_VENDOR_PATH",
-        r"E:\ACTIVE PROJECTS-PIPELINE\ACTIVE PROJECTS-PIPELINE\AFROMATIONS\vendors\hermes-agent",
+        "MAXX_RUNTIME_VENDOR_PATH",
+        os.environ.get(
+            "MAXX_HERMES_VENDOR_PATH",
+            r"E:\ACTIVE PROJECTS-PIPELINE\ACTIVE PROJECTS-PIPELINE\AFROMATIONS\vendors\hermes-agent",
+        ),
     )
 ).resolve()
-DEFAULT_PROVIDER = os.environ.get("MAXX_HERMES_PROVIDER", "openrouter")
-DEFAULT_MODEL = os.environ.get("MAXX_HERMES_MODEL", "openrouter/owl-alpha")
-DEFAULT_DISPATCH_TIMEOUT_SECONDS = float(os.environ.get("MAXX_HERMES_SYNC_TIMEOUT_SECONDS", "3"))
+DEFAULT_PROVIDER = os.environ.get("MAXX_RUNTIME_PROVIDER", os.environ.get("MAXX_HERMES_PROVIDER", "openrouter"))
+DEFAULT_MODEL = os.environ.get("MAXX_RUNTIME_MODEL", os.environ.get("MAXX_HERMES_MODEL", "openrouter/owl-alpha"))
+DEFAULT_DISPATCH_TIMEOUT_SECONDS = float(os.environ.get("MAXX_RUNTIME_SYNC_TIMEOUT_SECONDS", os.environ.get("MAXX_HERMES_SYNC_TIMEOUT_SECONDS", "3")))
 DEFAULT_RUNTIME_HOME = Path(
     os.environ.get(
-        "MAXX_HERMES_HOME",
-        str(Path(__file__).resolve().parents[2] / "backend" / "runtime" / "hermes"),
+        "MAXX_RUNTIME_HOME",
+        os.environ.get(
+            "MAXX_HERMES_HOME",
+            str(Path(__file__).resolve().parents[2] / "backend" / "runtime" / "maxx"),
+        ),
     )
 ).resolve()
 
@@ -161,17 +167,17 @@ def provision_profile(profile_name: str) -> HermesProfileBinding:
 
 
 def write_maxx_profile_persona(binding: HermesProfileBinding) -> str:
-    """Customize the Hermes profile so MAXX behaves like the client's Lead Desk employee."""
+    """Customize the private runtime profile so MAXX behaves like the client's Lead Desk employee."""
     profile_root = Path(binding.profile_home)
     profile_root.mkdir(parents=True, exist_ok=True)
     soul_path = profile_root / "SOUL.md"
     soul_path.write_text(
         "\n".join(
             [
-                "You are Hermes Agent operating through the Agent MAXX wrapper.",
+                "You are Agent MAXX.",
                 "",
-                "Agent MAXX is a branded smart-site employee layer on top of Hermes. "
-                "Your Wave 1 assignment is Lead Desk operations for one tenant at a time.",
+                "You are the client's branded smart-site employee. Your Wave 1 assignment is "
+                "Lead Desk operations for one tenant at a time.",
                 "",
                 "## Business outcomes",
                 "- Capture more qualified leads from the smart site.",
@@ -188,7 +194,7 @@ def write_maxx_profile_persona(binding: HermesProfileBinding) -> str:
                 "## Current MAXX scope",
                 "- One smart site.",
                 "- One MAXX employee.",
-                "- One Hermes profile per client on one server.",
+                "- One Agent MAXX profile per client on one server.",
                 "- Lead Desk first; multi-agent company orchestration is intentionally deferred.",
             ]
         ),
@@ -299,7 +305,7 @@ def execute_lead_task(profile_name: str, task_id: str, payload: dict[str, object
             provider=DEFAULT_PROVIDER,
             model=DEFAULT_MODEL,
             configured=False,
-            notes=["Hermes vendor is unavailable, so MAXX could not dispatch this Lead Desk task."],
+            notes=["The private runtime driver is unavailable, so Agent MAXX could not dispatch this Lead Desk task."],
         )
 
     if not provider_configured():
@@ -309,7 +315,7 @@ def execute_lead_task(profile_name: str, task_id: str, payload: dict[str, object
             model=DEFAULT_MODEL,
             configured=False,
             notes=[
-                "Hermes profile provisioning is ready, but no OpenRouter credential is configured.",
+                "Agent MAXX profile provisioning is ready, but no OpenRouter credential is configured.",
                 "Set MAXX_OPENROUTER_API_KEY or OPENROUTER_API_KEY to enable model-backed execution.",
             ],
         )
@@ -319,7 +325,7 @@ def execute_lead_task(profile_name: str, task_id: str, payload: dict[str, object
     def run_dispatch() -> None:
         result_queue.put(_execute_lead_task_now(profile_name, task_id, payload))
 
-    thread = threading.Thread(target=run_dispatch, name=f"maxx-hermes-{task_id}", daemon=True)
+    thread = threading.Thread(target=run_dispatch, name=f"maxx-runtime-{task_id}", daemon=True)
     thread.start()
     thread.join(timeout=DEFAULT_DISPATCH_TIMEOUT_SECONDS)
 
@@ -330,8 +336,8 @@ def execute_lead_task(profile_name: str, task_id: str, payload: dict[str, object
             model=DEFAULT_MODEL,
             configured=True,
             notes=[
-                "Hermes accepted the Lead Desk task, but the model run exceeded the synchronous response budget.",
-                "MAXX stored the task and returned it for operator review instead of blocking the intake request.",
+                "Agent MAXX accepted the Lead Desk task, but the model run exceeded the synchronous response budget.",
+                "Agent MAXX stored the task and returned it for operator review instead of blocking the intake request.",
             ],
         )
 
@@ -343,7 +349,7 @@ def execute_lead_task(profile_name: str, task_id: str, payload: dict[str, object
             provider=DEFAULT_PROVIDER,
             model=DEFAULT_MODEL,
             configured=True,
-            notes=["Hermes dispatch ended without returning a result to MAXX."],
+            notes=["Agent MAXX dispatch ended without returning a result."],
         )
 
 
@@ -361,7 +367,7 @@ def _execute_lead_task_now(profile_name: str, task_id: str, payload: dict[str, o
             )
             response = agent.run_conversation(
                 user_message=(
-                    "Process this Lead Desk task for Agent MAXX.\n\n"
+                    "Process this Lead Desk task as Agent MAXX.\n\n"
                     f"Task payload:\n{payload}\n\n"
                     "Return a concise operator-ready action plan with:\n"
                     "1. qualification summary\n"
@@ -370,8 +376,7 @@ def _execute_lead_task_now(profile_name: str, task_id: str, payload: dict[str, o
                     "4. risks or missing info\n"
                 ),
                 system_message=(
-                    "You are the Hermes runtime for Agent MAXX Lead Desk. "
-                    "Support operator triage for a smart-site tenant. "
+                    "You are Agent MAXX Lead Desk. Support operator triage for a smart-site tenant. "
                     "Do not invent systems that are not in the payload. "
                     "Prefer concise, operational output."
                 ),
@@ -383,7 +388,7 @@ def _execute_lead_task_now(profile_name: str, task_id: str, payload: dict[str, o
             provider=DEFAULT_PROVIDER,
             model=DEFAULT_MODEL,
             configured=True,
-            notes=[f"Hermes dispatch failed: {error}"],
+            notes=[f"Agent MAXX dispatch failed: {error}"],
         )
 
     final_response = str(response.get("final_response") or "").strip()
@@ -393,7 +398,7 @@ def _execute_lead_task_now(profile_name: str, task_id: str, payload: dict[str, o
             provider=DEFAULT_PROVIDER,
             model=DEFAULT_MODEL,
             configured=True,
-            notes=["Hermes execution completed, but it did not return a final operator response."],
+            notes=["Agent MAXX execution completed, but it did not return a final operator response."],
         )
 
     return HermesDispatchResult(
@@ -401,7 +406,7 @@ def _execute_lead_task_now(profile_name: str, task_id: str, payload: dict[str, o
         provider=DEFAULT_PROVIDER,
         model=DEFAULT_MODEL,
         configured=True,
-        notes=["Hermes executed a model-backed Lead Desk pass for this tenant."],
+        notes=["Agent MAXX executed a model-backed Lead Desk pass for this tenant."],
         response_excerpt=final_response[:800],
     )
 
@@ -419,17 +424,17 @@ def health() -> HermesRuntimeHealth:
             provider_configured=provider_configured(),
             execution_ready=False,
             profiles_total=0,
-            notes=["Hermes vendor checkout could not be found from the MAXX backend."],
+            notes=["The private Agent MAXX runtime driver could not be found from the backend."],
         )
 
     try:
         profiles_total = len(list_profiles())
         notes = [
-            "Hermes vendor checkout is available for profile-backed control-plane work.",
-            "MAXX is using Hermes profile homes on one server as the Wave 1 tenancy model.",
+            "Agent MAXX runtime driver is available for profile-backed control-plane work.",
+            "Agent MAXX is using one profile home per client on one server as the Wave 1 tenancy model.",
         ]
         if provider_configured():
-            notes.append("Provider credentials are present for model-backed Hermes execution.")
+            notes.append("Provider credentials are present for model-backed Agent MAXX execution.")
         else:
             notes.append("Provider credentials are still missing, so dispatch remains profile-backed only.")
         return HermesRuntimeHealth(
@@ -457,5 +462,5 @@ def health() -> HermesRuntimeHealth:
             provider_configured=provider_configured(),
             execution_ready=False,
             profiles_total=0,
-            notes=[f"Hermes vendor exists, but profile control failed: {error}"],
+            notes=[f"Agent MAXX runtime driver exists, but profile control failed: {error}"],
         )

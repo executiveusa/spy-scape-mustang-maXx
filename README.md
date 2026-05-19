@@ -1,6 +1,6 @@
 # Agent MAXX 006
 
-Cinematic Agent MAXX smart-site frontend with a FastAPI control plane for the Hermes-backed Lead Desk employee.
+Cinematic Agent MAXX smart-site frontend with a FastAPI control plane for the Lead Desk employee.
 
 ## What is live now
 
@@ -48,11 +48,11 @@ The backend now exposes a concrete operator-facing contract under [`backend/`](C
 - `GET /v1/logs`
 - `GET /v1/deploy`
 
-The backend now owns tenant manifests, Hermes profile bindings, Lead Desk task state, and runtime health. App-level auth is intentionally deferred, so the BFF must remain private in any production deployment.
+The backend now owns tenant manifests, Agent MAXX profile bindings, Lead Desk task state, and runtime health. App-level auth is intentionally deferred, so the BFF must remain private in any production deployment.
 
 ## Production readiness
 
-The v1 production target is Vercel for the Next.js smart site plus a private VPS/Coolify service for FastAPI, Hermes, profiles, and persistent data. See [`docs/production-readiness.md`](C:\Users\execu\Documents\vite-mustangmaxx\docs\production-readiness.md) for the launch gates and environment policy.
+The v1 production target is Vercel for the Next.js smart site plus a private VPS/Coolify service for FastAPI, Agent MAXX runtime profiles, and persistent data. See [`docs/production-readiness.md`](C:\Users\execu\Documents\vite-mustangmaxx\docs\production-readiness.md) for the launch gates and environment policy.
 
 Run the local production verification bundle:
 
@@ -69,7 +69,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BackendUrl "https://private-or-tunneled-bff-origin" `
   -FrontendUrl "https://your-vercel-preview-url" `
   -RequireLiveStack `
-  -RequireHermesExecutionReady
+  -RequireMaxxRuntimeExecutionReady
 ```
 
 ## Vercel linkage
@@ -93,6 +93,6 @@ vercel --prod
 
 - Final MAXX-owned art is still placeholder-driven
 - App-level production auth is deferred; the BFF must stay private
-- Hermes vendor path and OpenRouter credentials must be present before model-backed execution can be claimed
+- Agent MAXX runtime path and OpenRouter credentials must be present before model-backed execution can be claimed
 - The public asset library is down to the live placeholder set at roughly 24.6 MB
 - Dependency posture is improved, but there are still moderate advisories to clear before a true production cut

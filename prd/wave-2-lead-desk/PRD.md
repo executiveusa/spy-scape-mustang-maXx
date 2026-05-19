@@ -13,7 +13,7 @@ Make Lead Desk a commercially usable workflow for one smart-site tenant.
 - manifest-driven routing and offer context
 - SQLite-backed task lifecycle at `/data/maxx/maxx.db`
 - stable statuses: `triaged`, `queued`, `attention`, `follow-up`, `completed`, `blocked`
-- slow Hermes runs return `dispatch-deferred` instead of blocking intake
+- slow Agent MAXX runs return `dispatch-deferred` instead of blocking intake
 
 ## Acceptance
 

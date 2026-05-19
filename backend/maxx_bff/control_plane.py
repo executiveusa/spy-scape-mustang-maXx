@@ -5,7 +5,7 @@ import re
 from typing import Any
 from uuid import uuid4
 
-from . import hermes_vendor
+from . import maxx_runtime
 from .models import (
     ClientCreateRequest,
     ClientRecord,
@@ -70,8 +70,8 @@ def create_client(request: ClientCreateRequest) -> ClientRecord:
             "profile_name": slug,
             "profile_home": "",
             "workspace_path": "",
-            "provider": hermes_vendor.DEFAULT_PROVIDER,
-            "model": hermes_vendor.DEFAULT_MODEL,
+            "provider": maxx_runtime.DEFAULT_PROVIDER,
+            "model": maxx_runtime.DEFAULT_MODEL,
             "status": "pending",
         },
         created_at=timestamp,
@@ -94,32 +94,32 @@ def list_heartbeats() -> list[HeartbeatSummary]:
 def maxx_wrapper_readiness(client_id: str = "maxx-demo") -> dict[str, Any]:
     clients = list_clients()
     client = next((item for item in clients if item.client_id == client_id), None)
-    hermes = hermes_vendor.health()
+    runtime = maxx_runtime.health()
     workflows = load_workflow_packs()
     lead_desk_enabled = any(workflow.workflow_id == "lead-desk" and workflow.status == "live" for workflow in workflows)
     profile_ready = bool(client and client.hermes.status == "ready")
     profile_staged = bool(client and client.hermes.status in {"ready", "vendor-missing"})
     can_stage_today = bool(client and lead_desk_enabled and profile_staged)
-    can_execute_model_today = bool(can_stage_today and hermes.execution_ready and profile_ready)
+    can_execute_model_today = bool(can_stage_today and runtime.execution_ready and profile_ready)
 
     blockers: list[str] = []
     if client is None:
         blockers.append(f"Create tenant {client_id}.")
     if client and not profile_staged:
-        blockers.append(f"Provision Hermes profile {client.hermes.profile_name}.")
+        blockers.append(f"Provision Agent MAXX profile {client.hermes.profile_name}.")
     if not lead_desk_enabled:
         blockers.append("Enable the Lead Desk workflow pack.")
-    if not hermes.available:
-        blockers.append("Install or point MAXX_HERMES_VENDOR_PATH at the Hermes vendor checkout.")
-    if not hermes.provider_configured:
+    if not runtime.available:
+        blockers.append("Install or point MAXX_RUNTIME_VENDOR_PATH at the Agent MAXX runtime driver checkout.")
+    if not runtime.provider_configured:
         blockers.append("Set MAXX_OPENROUTER_API_KEY or OPENROUTER_API_KEY for model-backed execution.")
 
     return {
         "product": "Agent MAXX",
         "runtime_wrapper": {
-            "base_runtime": "Hermes Agent",
+            "base_runtime": "Agent MAXX Runtime",
             "customized_as": "Agent MAXX Lead Desk employee",
-            "tenant_model": "one Hermes profile per client on one server",
+            "tenant_model": "one Agent MAXX profile per client on one server",
             "first_use_case": "Lead Desk: capture, qualify, follow up, route, and summarize inquiries",
         },
         "client_id": client_id,
@@ -128,14 +128,14 @@ def maxx_wrapper_readiness(client_id: str = "maxx-demo") -> dict[str, Any]:
         "model_backed_execution_ready": can_execute_model_today,
         "profile_ready": profile_ready,
         "lead_desk_enabled": lead_desk_enabled,
-        "hermes": hermes.model_dump(),
+        "maxx_runtime": runtime.model_dump(),
         "blockers": blockers,
         "today_path": [
             "Create or select a tenant.",
-            "Provision its Hermes profile.",
+            "Provision its Agent MAXX profile.",
             "Submit one Lead Desk inquiry.",
             "Review the operator summary, qualification, routing target, and workspace task files.",
-            "Add provider credentials when you need live model-backed Hermes execution instead of staged operator review.",
+            "Add provider credentials when you need live model-backed Agent MAXX execution instead of staged operator review.",
         ],
     }
 
@@ -161,7 +161,7 @@ def quickstart_client(request: ClientCreateRequest | None = None) -> dict[str, A
         "next_steps": [
             "Open /lead-desk and submit a test inquiry.",
             "Use /v1/lead-desk/tasks to inspect created tasks.",
-            "Use /v1/hermes/health to confirm whether execution is staged or model-backed.",
+            "Use /v1/maxx/runtime/health to confirm whether execution is staged or model-backed.",
         ],
     }
 
@@ -174,10 +174,10 @@ def get_client(client_id: str) -> ClientRecord:
 
 
 def _reconcile_client_runtime(client: ClientRecord) -> ClientRecord:
-    if hermes_vendor.vendor_available() or client.hermes.status != "ready":
+    if maxx_runtime.vendor_available() or client.hermes.status != "ready":
         return client
 
-    binding = hermes_vendor.provision_profile(client.slug)
+    binding = maxx_runtime.provision_profile(client.slug)
     return client.model_copy(
         update={
             "status": "degraded",
@@ -203,8 +203,8 @@ def provision_client(client_id: str) -> ClientRecord:
                 f"Manifest mismatch for {client.client_id}: manifest is tagged {client.manifest.client_id}"
             )
 
-        binding = hermes_vendor.provision_profile(client.slug)
-        hermes_vendor.write_manifest_context(client.manifest, workflow_ids, client.slug)
+        binding = maxx_runtime.provision_profile(client.slug)
+        maxx_runtime.write_manifest_context(client.manifest, workflow_ids, client.slug)
 
         client_status = "live" if binding.status == "ready" else "degraded"
         updated = client.model_copy(
@@ -287,7 +287,7 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
     follow_up_actions = [
         f"Create operator summary for {submission.contact_name}.",
         f"Route {qualification.tier} lead toward {route_target}.",
-        "Persist this inquiry inside the Hermes workspace for tenant recall.",
+        "Persist this inquiry inside the Agent MAXX workspace for tenant recall.",
     ]
     if qualification.next_action == "route-to-calendar":
         follow_up_actions.append("Offer priority booking path immediately.")
@@ -305,7 +305,7 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
         "qualification": asdict(qualification),
         "follow_up_actions": follow_up_actions,
     }
-    dispatch = hermes_vendor.execute_lead_task(client.hermes.profile_name, task_id, preview_payload)
+    dispatch = maxx_runtime.execute_lead_task(client.hermes.profile_name, task_id, preview_payload)
     task_status = "completed" if dispatch.status == "completed" else "attention"
     if dispatch.status in {"provider-missing", "dispatch-deferred"}:
         task_status = "queued"
@@ -317,7 +317,7 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
         f"{submission.requested_service}; route via {route_target} and keep follow-up fast."
     )
     if dispatch.response_excerpt:
-        operator_summary = f"{operator_summary} Hermes response: {dispatch.response_excerpt[:220]}".strip()
+        operator_summary = f"{operator_summary} Agent MAXX response: {dispatch.response_excerpt[:220]}".strip()
 
     heartbeat = HeartbeatSummary(
         heartbeat_id=f"hb-{uuid4().hex[:8]}",
@@ -351,7 +351,7 @@ def submit_lead(submission: LeadDeskSubmission) -> LeadDeskTask:
     )
 
     task_payload = task.model_dump()
-    task.workspace_files = hermes_vendor.write_lead_task(client.hermes.profile_name, task_id, task_payload)
+    task.workspace_files = maxx_runtime.write_lead_task(client.hermes.profile_name, task_id, task_payload)
     task_payload = task.model_dump()
 
     tasks = load_tasks()
@@ -455,10 +455,10 @@ def _normalize_task_payload(task: dict[str, Any]) -> dict[str, Any]:
     if "hermes_dispatch" not in task:
         task["hermes_dispatch"] = {
             "status": "legacy-unknown",
-            "provider": hermes_vendor.DEFAULT_PROVIDER,
-            "model": hermes_vendor.DEFAULT_MODEL,
-            "configured": hermes_vendor.provider_configured(),
-            "notes": ["This task was created before Hermes dispatch metadata was added to MAXX."],
+            "provider": maxx_runtime.DEFAULT_PROVIDER,
+            "model": maxx_runtime.DEFAULT_MODEL,
+            "configured": maxx_runtime.provider_configured(),
+            "notes": ["This task was created before Agent MAXX dispatch metadata was added."],
             "response_excerpt": None,
         }
 
@@ -507,15 +507,15 @@ def runtime_routes() -> list[RuntimeRoute]:
         RuntimeRoute(path="/api/lead-desk", label="Lead Desk Intake API", status="live"),
         RuntimeRoute(path="/api/runtime", label="Runtime Proxy API", status="live"),
         RuntimeRoute(path="/api/health", label="Frontend Health API", status="live"),
-        RuntimeRoute(path="/v1/hermes/health", label="Hermes Runtime Health", status="live"),
-        RuntimeRoute(path="/v1/hermes/profiles", label="Hermes Profile Registry", status="live"),
+        RuntimeRoute(path="/v1/maxx/runtime/health", label="Agent MAXX Runtime Health", status="live"),
+        RuntimeRoute(path="/v1/maxx/runtime/profiles", label="Agent MAXX Profile Registry", status="live"),
         RuntimeRoute(path="/v1/clients", label="Tenant Registry", status="live"),
         RuntimeRoute(path="/v1/lead-desk/tasks", label="Lead Desk Task API", status="live"),
     ]
 
 
 def runtime_systems() -> list[RuntimeSystem]:
-    hermes = hermes_vendor.health()
+    runtime = maxx_runtime.health()
     clients = load_clients()
     workflows = load_workflow_packs()
     heartbeats = load_heartbeats()
@@ -541,11 +541,11 @@ def runtime_systems() -> list[RuntimeSystem]:
         ),
         RuntimeSystem(
             name="Agent MAXX Core",
-            status="online" if hermes.available else "warning",
-            latency=hermes.mode if hermes.available else "degraded",
+            status="online" if runtime.available else "warning",
+            latency=runtime.mode if runtime.available else "degraded",
             detail=(
-                f"Hermes vendor status: {hermes.status}. "
-                f"{hermes.profiles_total} profile home(s) visible under the Wave 1 one-server tenancy model."
+                f"Agent MAXX runtime status: {runtime.status}. "
+                f"{runtime.profiles_total} profile home(s) visible under the Wave 1 one-server tenancy model."
             ),
         ),
         RuntimeSystem(
@@ -559,22 +559,22 @@ def runtime_systems() -> list[RuntimeSystem]:
         ),
         RuntimeSystem(
             name="Memory Store",
-            status="online" if hermes.available else "warning",
+            status="online" if runtime.available else "warning",
             latency="profile-home",
             detail=(
-                "Hermes profile homes are provisioned for tenant memory and workspace context, "
-                "even though richer provider-backed recall still depends on full Hermes runtime setup."
+                "Agent MAXX profile homes are provisioned for tenant memory and workspace context, "
+                "even though richer provider-backed recall still depends on full runtime setup."
             ),
         ),
         RuntimeSystem(
             name="Provider Router",
-            status="online" if hermes.provider_configured else "warning",
-            latency=hermes.provider,
+            status="online" if runtime.provider_configured else "warning",
+            latency=runtime.provider,
             detail=(
-                f"Configured for {hermes.model}. "
+                f"Configured for {runtime.model}. "
                 "Model-backed Lead Desk execution is ready."
-                if hermes.provider_configured
-                else "OpenRouter credentials are still missing, so Hermes can only stage profile-backed tasks."
+                if runtime.provider_configured
+                else "OpenRouter credentials are still missing, so Agent MAXX can only stage profile-backed tasks."
             ),
         ),
         RuntimeSystem(

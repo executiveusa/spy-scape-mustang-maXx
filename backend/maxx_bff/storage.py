@@ -191,7 +191,7 @@ def default_manifest() -> SmartSiteManifest:
             timezone="America/Mexico_City",
             geography=["Austin", "Dallas", "Remote US"],
             summary=(
-                "Reference smart-site tenant used to prove the Hermes-backed Lead Desk "
+                "Reference smart-site tenant used to prove the Agent MAXX Lead Desk "
                 "workflow before additional industries are onboarded."
             ),
             offers=[
@@ -288,7 +288,7 @@ def manifest_from_request(request: ClientCreateRequest, slug: str) -> SmartSiteM
         ),
         operator_notes=[
             "Lead Desk is enabled as this tenant's first MAXX employee capability.",
-            "Provision the Hermes profile before accepting live inquiries.",
+            "Provision the Agent MAXX profile before accepting live inquiries.",
         ],
     )
 
@@ -392,7 +392,7 @@ def build_seed_log_messages(clients: list[ClientRecord]) -> list[RuntimeNote]:
             id="runtime-1",
             timestamp=now,
             type="success",
-            message=f"{provisioned} Hermes tenant profile(s) ready for Lead Desk routing",
+            message=f"{provisioned} Agent MAXX tenant profile(s) ready for Lead Desk routing",
         ),
         RuntimeNote(
             id="runtime-2",

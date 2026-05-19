@@ -2,7 +2,7 @@
 
 ## Tooling Priority
 
-1. Use `jCodeMunch` as the default code-intelligence lane for Agent MAXX and Hermes vendor exploration when the MCP server is available.
+1. Use `jCodeMunch` as the default code-intelligence lane for Agent MAXX and private runtime vendor exploration when the MCP server is available.
 2. Use `Ralphy` as the wave executor for multi-step work under `prd/`.
 3. Fall back to direct file reads only when symbol-targeted retrieval is unavailable or insufficient.
 
@@ -11,7 +11,7 @@
 - Purpose: repo indexing, symbol lookup, blast-radius checks, changed-symbol review, and refactor planning.
 - Scope:
   - `C:\Users\execu\Documents\vite-mustangmaxx`
-  - Hermes vendor checkout
+  - Agent MAXX private runtime vendor checkout
 - Guardrail: the upstream jCodeMunch project requires a commercial license for business use. Confirm that before treating it as a default paid-production dependency.
 
 ## Ralphy
@@ -40,6 +40,6 @@ Meaning:
 
 ## Wave 1 Default
 
-- Hermes is the runtime source of truth.
+- Agent MAXX is the runtime identity and product boundary; the private vendor driver remains hidden behind it.
 - Lead Desk is the first sellable employee workflow.
 - Multi-tenant support starts on day one, even if the demo tenant is the only active tenant.

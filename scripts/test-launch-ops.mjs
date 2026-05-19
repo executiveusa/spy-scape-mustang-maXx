@@ -19,11 +19,11 @@ assert.match(verify, /smart-site-story/, 'verify-production must smoke the publi
 
 const backup = readRequired('scripts/backup-vps-state.ps1')
 assert.match(backup, /\/data\/maxx/, 'backup script must include MAXX data volume')
-assert.match(backup, /\/runtime\/hermes/, 'backup script must include Hermes runtime volume')
+assert.match(backup, /\/runtime\/maxx/, 'backup script must include Agent MAXX runtime volume')
 
 const restore = readRequired('scripts/restore-vps-state.ps1')
 assert.match(restore, /\/data\/maxx/, 'restore script must include MAXX data volume')
-assert.match(restore, /\/runtime\/hermes/, 'restore script must include Hermes runtime volume')
+assert.match(restore, /\/runtime\/maxx/, 'restore script must include Agent MAXX runtime volume')
 
 for (const doc of [
   'docs/backend-deploy-runbook.md',

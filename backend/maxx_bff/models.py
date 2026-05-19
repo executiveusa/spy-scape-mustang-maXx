@@ -65,7 +65,7 @@ class SmartSiteManifest(BaseModel):
     operator_notes: list[str]
 
 
-class HermesProfileBinding(BaseModel):
+class MaxxRuntimeProfileBinding(BaseModel):
     profile_name: str
     profile_home: str
     workspace_path: str
@@ -79,7 +79,7 @@ class ClientRecord(BaseModel):
     slug: str
     status: str
     manifest: SmartSiteManifest
-    hermes: HermesProfileBinding
+    hermes: MaxxRuntimeProfileBinding
     created_at: str
     updated_at: str
 
@@ -132,7 +132,7 @@ class LeadQualification(BaseModel):
     next_action: str
 
 
-class HermesDispatchResult(BaseModel):
+class MaxxRuntimeDispatchResult(BaseModel):
     status: str
     provider: str
     model: str
@@ -168,7 +168,7 @@ class LeadDeskTask(BaseModel):
     routing_target: str
     hermes_profile: str
     workspace_files: list[str]
-    hermes_dispatch: HermesDispatchResult
+    hermes_dispatch: MaxxRuntimeDispatchResult
     heartbeat_summary: HeartbeatSummary
 
 
@@ -197,7 +197,7 @@ class RuntimeRoute(BaseModel):
     status: Literal["live", "planned", "offline"]
 
 
-class HermesRuntimeHealth(BaseModel):
+class MaxxRuntimeHealth(BaseModel):
     available: bool
     status: str
     mode: str
@@ -209,6 +209,11 @@ class HermesRuntimeHealth(BaseModel):
     execution_ready: bool
     profiles_total: int
     notes: list[str]
+
+
+HermesProfileBinding = MaxxRuntimeProfileBinding
+HermesDispatchResult = MaxxRuntimeDispatchResult
+HermesRuntimeHealth = MaxxRuntimeHealth
 
 
 def utc_now() -> str:

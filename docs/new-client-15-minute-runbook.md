@@ -15,17 +15,17 @@ Use this for a controlled Agent MAXX demo tenant on the VPS/Coolify backend and 
 2. Confirm the VPS/Coolify backend health endpoint returns `agent-maxx-bff`.
 3. Open `/tenants/` after operator login.
 4. Create the tenant with the client identity and primary offer.
-5. Provision the Hermes profile from the tenant card.
+5. Provision the Agent MAXX profile from the tenant card.
 6. Confirm the manifest shows Lead Desk in enabled workflows.
 7. Open `/lead-desk/` and submit one test inquiry.
-8. Confirm the task shows qualification, route, next action, Hermes dispatch state, and heartbeat summary.
+8. Confirm the task shows qualification, route, next action, Agent MAXX dispatch state, and heartbeat summary.
 9. Move the task to `completed` with a verification note.
 10. Run `powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1` with the live Vercel and VPS values.
 
 ## Done
 
 - Tenant record exists in SQLite on `/data/maxx/maxx.db`.
-- Hermes operational workspace remains under `/runtime/hermes`.
+- Agent MAXX operational workspace remains under `/runtime/maxx`.
 - Vercel frontend shows the public smart-site story.
 - Operator can review Lead Desk status behind login.
 
