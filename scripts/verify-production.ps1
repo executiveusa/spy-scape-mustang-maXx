@@ -1,6 +1,7 @@
 param(
   [string]$BackendUrl = $env:MAXX_VERIFY_BACKEND_URL,
   [string]$FrontendUrl = $env:MAXX_VERIFY_FRONTEND_URL,
+  [string]$BrowserWorkerUrl = $env:MAXX_VERIFY_BROWSER_WORKER_URL,
   [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET,
   [string]$OperatorPassword = $env:MAXX_OPERATOR_PASSWORD,
   [switch]$RequireLiveStack,
@@ -276,6 +277,23 @@ try {
         throw "Lead Acquisition promotion did not create a Lead Desk task."
       }
       Write-Host "Verified Lead Acquisition job $($job.job_id) with task $($promotion.lead_desk_task.task_id)."
+    }
+  }
+
+  if ($BrowserWorkerUrl) {
+    $BrowserWorkerUrl = $BrowserWorkerUrl.TrimEnd('/')
+    Invoke-Step "Browser worker live health" {
+      $workerHealth = Invoke-JsonGet "$BrowserWorkerUrl/health"
+      if ($workerHealth.service -ne 'agent-maxx-browser-worker') {
+        throw "Unexpected browser worker health payload from $BrowserWorkerUrl/health"
+      }
+      if (-not $workerHealth.secret_configured) {
+        throw "Browser worker secret is not configured."
+      }
+      if ($workerHealth.allowed_domains -contains '*') {
+        throw "Browser worker allowed domains must not contain '*'."
+      }
+      Write-Host "Browser worker status: $($workerHealth.status); autonomy: $($workerHealth.autonomy_enabled)"
     }
   }
 

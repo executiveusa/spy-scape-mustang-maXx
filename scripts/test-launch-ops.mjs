@@ -14,6 +14,7 @@ const verify = readRequired('scripts/verify-production.ps1')
 for (const command of ['test:smart-site-story', 'test:operator-auth', 'npx tsc --noEmit', 'npm run build']) {
   assert.match(verify, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `verify-production must run ${command}`)
 }
+assert.match(verify, /test_browser_worker\.py/, 'verify-production must run browser worker tests')
 assert.match(verify, /operator-session/, 'verify-production must test operator login/session')
 assert.match(verify, /smart-site-story/, 'verify-production must smoke the public story endpoint')
 
@@ -33,6 +34,7 @@ for (const doc of [
   const body = readRequired(doc)
   assert.match(body, /Vercel/i, `${doc} must include Vercel guidance`)
   assert.match(body, /Coolify|VPS/i, `${doc} must include VPS/Coolify guidance`)
+  assert.match(body, /browser worker|browser-worker|MAXX_BROWSER/i, `${doc} must include private browser worker guidance`)
 }
 
 console.log('launch ops contract ok')

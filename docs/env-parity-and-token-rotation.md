@@ -25,8 +25,21 @@ Required backend values:
 - `MAXX_RUNTIME_PROVIDER=openrouter`
 - `MAXX_RUNTIME_MODEL=openrouter/owl-alpha`
 - `MAXX_OPENROUTER_API_KEY`
+- `FIRECRAWL_API_KEY`
+- `MAXX_BROWSER_WORKER_URL=http://agent-maxx-browser-worker:8020` or the private worker origin
+- `MAXX_BROWSER_WORKER_SECRET`
+- `MAXX_BROWSER_ALLOWED_DOMAINS`
+- `MAXX_BROWSER_AUTONOMY_ENABLED=false` until a tenant is explicitly trusted
 
 Persistent volumes must cover `/data/maxx` and `/runtime/maxx`.
+
+Required private browser-worker values:
+
+- `MAXX_BROWSER_WORKER_SECRET`: must match the BFF value.
+- `MAXX_BROWSER_ALLOWED_DOMAINS`: comma-separated tenant-approved domains, never `*`.
+- `MAXX_BROWSER_AUTONOMY_ENABLED=false` by default.
+
+Browser-worker port `8020` must stay private to the VPS/Docker network.
 
 ## GitHub / Coolify Deploy
 
@@ -42,6 +55,8 @@ Do not commit either value. Rotate the Coolify token before real client producti
 - Rotate OpenRouter key used during setup.
 - Rotate Coolify API token used during setup.
 - Rotate Vercel token or revoke any temporary CLI token if one was created.
+- Rotate Firecrawl key if it was used during setup.
+- Rotate `MAXX_BROWSER_WORKER_SECRET`.
 - Generate a fresh `MAXX_BFF_SHARED_SECRET`.
 - Generate a fresh `MAXX_OPERATOR_PASSWORD`.
 - Generate a fresh `MAXX_OPERATOR_SESSION_SECRET`.
