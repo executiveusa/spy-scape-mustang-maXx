@@ -1,5 +1,6 @@
 param(
-  [switch]$RequireSecret
+  [switch]$RequireSecret,
+  [switch]$RequireAcquisition
 )
 
 $ErrorActionPreference = 'Stop'
@@ -7,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 $required = @(
   'MAXX_ENV',
   'MAXX_ALLOWED_ORIGINS',
-  'MAXX_DATA_DIR',
+  'MAXX_DATA_DIR'
 )
 
 $runtimePairs = @(
@@ -20,6 +21,13 @@ $runtimePairs = @(
 if ($RequireSecret) {
   $required += 'MAXX_OPENROUTER_API_KEY'
   $required += 'MAXX_BFF_SHARED_SECRET'
+}
+
+if ($RequireAcquisition) {
+  $required += 'FIRECRAWL_API_KEY'
+  $required += 'MAXX_BROWSER_WORKER_URL'
+  $required += 'MAXX_BROWSER_WORKER_SECRET'
+  $required += 'MAXX_BROWSER_ALLOWED_DOMAINS'
 }
 
 $missing = @()
@@ -66,6 +74,16 @@ if ($allowedOrigins -and $allowedOrigins.Contains('*')) {
 
 if ([Environment]::GetEnvironmentVariable('MAXX_ALLOW_PUBLIC_BFF') -eq 'true') {
   Write-Error "MAXX_ALLOW_PUBLIC_BFF=true is not acceptable for real production data while auth is deferred."
+}
+
+$browserAutonomy = [Environment]::GetEnvironmentVariable('MAXX_BROWSER_AUTONOMY_ENABLED')
+if ($browserAutonomy -eq 'true' -and -not [Environment]::GetEnvironmentVariable('MAXX_BROWSER_WORKER_SECRET')) {
+  Write-Error "MAXX_BROWSER_AUTONOMY_ENABLED=true requires MAXX_BROWSER_WORKER_SECRET."
+}
+
+$browserAllowedDomains = [Environment]::GetEnvironmentVariable('MAXX_BROWSER_ALLOWED_DOMAINS')
+if ($browserAllowedDomains -and $browserAllowedDomains.Contains('*')) {
+  Write-Error "MAXX_BROWSER_ALLOWED_DOMAINS must not contain '*' in production."
 }
 
 Write-Host "Backend production environment preflight passed."

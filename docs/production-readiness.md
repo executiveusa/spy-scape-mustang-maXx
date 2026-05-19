@@ -129,6 +129,7 @@ Strict live backend verification:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BackendUrl "https://private-or-tunneled-bff-origin" `
+  -BrowserWorkerUrl "https://private-or-tunneled-browser-worker-origin" `
   -FrontendUrl "https://your-vercel-preview-url" `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -RequireLiveStack `

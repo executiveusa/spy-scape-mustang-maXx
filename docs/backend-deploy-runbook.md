@@ -25,6 +25,11 @@ MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
 MAXX_RUNTIME_PROVIDER=openrouter
 MAXX_RUNTIME_MODEL=openrouter/owl-alpha
 MAXX_OPENROUTER_API_KEY=sk-or-v1-...
+FIRECRAWL_API_KEY=replace-with-firecrawl-key
+MAXX_BROWSER_WORKER_URL=http://agent-maxx-browser-worker:8020
+MAXX_BROWSER_WORKER_SECRET=replace-with-worker-secret
+MAXX_BROWSER_ALLOWED_DOMAINS=example.com,iana.org
+MAXX_BROWSER_AUTONOMY_ENABLED=false
 ```
 
 ## Required Vercel Env
@@ -48,6 +53,17 @@ Coolify/VPS must preserve:
 - `/data/maxx` for `/data/maxx/maxx.db`
 - `/runtime/maxx` for Agent MAXX workspace/runtime state
 - `/opt/agent-maxx-runtime` for the private runtime driver checkout
+
+## Private Browser Worker
+
+Create a separate private Coolify app from `backend/browser-worker.coolify.json` or use the `agent-maxx-browser-worker` service in `docker-compose.yml`.
+
+Required rules:
+
+- Bind worker port `8020` privately only.
+- Use the same `MAXX_BROWSER_WORKER_SECRET` in the BFF and worker.
+- Keep `MAXX_BROWSER_AUTONOMY_ENABLED=false` until browser harness dependencies are installed and a tenant domain allowlist is reviewed.
+- Set `MAXX_BROWSER_ALLOWED_DOMAINS` to explicit domains only; never use `*`.
 
 Run backups before risky deploys:
 
@@ -78,11 +94,18 @@ Controlled demo:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BackendUrl "http://31.220.58.212:8010" `
+  -BrowserWorkerUrl "http://31.220.58.212:8020" `
   -FrontendUrl "https://spy-scape-mustang-maxx.vercel.app" `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -OperatorPassword $env:MAXX_OPERATOR_PASSWORD `
   -RequireLiveStack `
   -RequireMaxxRuntimeExecutionReady
+```
+
+Before strict live verification, validate backend env on the VPS:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-backend-production-env.ps1 -RequireSecret -RequireAcquisition
 ```
 
 ## Private Backend Gate
