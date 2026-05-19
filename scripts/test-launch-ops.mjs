@@ -30,6 +30,13 @@ const backendDockerfile = readRequired('backend/Dockerfile')
 assert.match(backendDockerfile, /COPY maxx_bff \.\/maxx_bff/, 'backend image must include BFF package')
 assert.match(backendDockerfile, /COPY maxx_browser_worker \.\/maxx_browser_worker/, 'backend image must include browser worker package for Coolify worker app')
 
+const workerDockerfile = readRequired('backend/Dockerfile.browser-worker')
+assert.match(workerDockerfile, /EXPOSE 8020/, 'browser worker image must expose worker port')
+assert.match(workerDockerfile, /maxx_browser_worker\.main:app/, 'browser worker image must start the worker app')
+
+const workerManifest = readRequired('backend/browser-worker.coolify.json')
+assert.match(workerManifest, /Dockerfile\.browser-worker/, 'browser worker Coolify manifest must use the dedicated worker Dockerfile')
+
 const browserWorkerConnect = readRequired('scripts/connect-coolify-browser-worker.ps1')
 assert.match(browserWorkerConnect, /MAXX_BROWSER_WORKER_SECRET/, 'browser worker connector must update worker secret')
 assert.match(browserWorkerConnect, /MAXX_BROWSER_ALLOWED_DOMAINS/, 'browser worker connector must update allowed domains')
