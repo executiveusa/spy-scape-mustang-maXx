@@ -10,6 +10,7 @@ from .lead_acquisition_drivers import (
     browser_worker_health,
     discover_web_research_prospects,
     lead_acquisition_sources,
+    run_browser_worker_job,
     web_research_health,
 )
 from .models import (
@@ -541,8 +542,27 @@ def create_lead_acquisition_job(request: LeadAcquisitionJobCreateRequest) -> Lea
             job.events.append("Private browser worker is disabled by tenant policy.")
             job.status = "blocked"
         else:
-            job.events.append("Private browser worker queued with tenant allowlist enforcement.")
-            job.status = "queued"
+            if not request.target_url:
+                raise ValueError("Browser worker jobs require target_url.")
+            try:
+                browser_prospects, events = run_browser_worker_job(
+                    request.query,
+                    request.target_url,
+                    request.max_records,
+                )
+                job.events.extend(events)
+                for prospect_input in browser_prospects[: request.max_records]:
+                    prospect = _prospect_from_input(job, prospect_input)
+                    key = _dedupe_key(prospect)
+                    if key in existing_keys:
+                        rejected += 1
+                        job.events.append(f"Rejected duplicate prospect for {prospect.company}.")
+                        continue
+                    existing_keys.add(key)
+                    created.append(prospect)
+            except Exception as error:
+                job.events.append(f"Private browser worker failed safely: {error.__class__.__name__}.")
+                job.status = "degraded"
 
     prospects.extend(created)
     if created:

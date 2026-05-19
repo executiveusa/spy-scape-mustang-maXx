@@ -47,6 +47,10 @@ class MaxxBffIntegrationTests(unittest.TestCase):
             "MAXX_ENV",
             "MAXX_ALLOWED_ORIGINS",
             "MAXX_BFF_SHARED_SECRET",
+            "MAXX_BROWSER_WORKER_URL",
+            "MAXX_BROWSER_AUTONOMY_ENABLED",
+            "MAXX_BROWSER_WORKER_SECRET",
+            "FIRECRAWL_API_KEY",
         ]:
             os.environ.pop(key, None)
 
@@ -363,6 +367,74 @@ class MaxxBffIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_browser_worker_runs_only_with_policy_and_allowlist(self) -> None:
+        os.environ["MAXX_BROWSER_WORKER_URL"] = "https://worker.internal"
+        os.environ["MAXX_BROWSER_AUTONOMY_ENABLED"] = "true"
+        os.environ["MAXX_BROWSER_WORKER_SECRET"] = "worker-secret"
+
+        storage = importlib.import_module("maxx_bff.storage")
+        models = importlib.import_module("maxx_bff.models")
+        storage.save_acquisition_policies(
+            [
+                models.AcquisitionPolicy(
+                    client_id="maxx-demo",
+                    allowed_domains=["example.com"],
+                    allowed_sources=["manual", "web-research", "authorized-contact-import", "browser-worker"],
+                    max_daily_records=25,
+                    browser_autonomy_enabled=True,
+                    outreach_requires_operator_approval=True,
+                )
+            ]
+        )
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return None
+
+            def read(self) -> bytes:
+                return b"""
+                {
+                  "prospects": [
+                    {
+                      "contact_name": "Taylor Chrome",
+                      "title": "Founder",
+                      "company": "Example Browser Co",
+                      "email": "taylor@example.com",
+                      "domain": "example.com",
+                      "source_url": "https://example.com/team",
+                      "notes": "Authenticated page evidence captured by private browser worker."
+                    }
+                  ]
+                }
+                """
+
+        with patch("maxx_bff.lead_acquisition_drivers.request.urlopen", return_value=FakeResponse()) as urlopen:
+            response = self.client.post(
+                "/v1/lead-acquisition/jobs",
+                json={
+                    "client_id": "maxx-demo",
+                    "source": "browser-worker",
+                    "query": "Find approved prospects from private page.",
+                    "target_url": "https://example.com/team",
+                    "max_records": 1,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        job = response.json()
+        self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["discovered_count"], 1)
+        self.assertIn("Private browser worker returned", " ".join(job["events"]))
+        header_names = {name.lower() for name, _value in urlopen.call_args.args[0].header_items()}
+        self.assertIn("x-maxx-browser-worker-secret", header_names)
+
+        prospects = self.client.get("/v1/lead-acquisition/prospects?client_id=maxx-demo").json()["prospects"]
+        self.assertEqual(prospects[0]["source"], "browser-worker")
+        self.assertEqual(prospects[0]["email"], "taylor@example.com")
 
     def test_lead_desk_task_and_heartbeat_survive_app_restart(self) -> None:
         self.client.post("/v1/clients/maxx-demo/provision")
