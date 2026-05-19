@@ -8,6 +8,7 @@ from uuid import uuid4
 from . import maxx_runtime
 from .lead_acquisition_drivers import (
     browser_worker_health,
+    discover_web_research_prospects,
     lead_acquisition_sources,
     web_research_health,
 )
@@ -471,6 +472,8 @@ def create_lead_acquisition_job(request: LeadAcquisitionJobCreateRequest) -> Lea
         raise PermissionError(f"Source is not enabled for this tenant: {request.source}")
     if request.source == "browser-worker" and not policy.browser_autonomy_enabled:
         raise PermissionError("Browser worker requires explicit tenant policy approval.")
+    if request.target_url and not _target_allowed_by_policy(request.target_url, policy):
+        raise PermissionError("Target URL is outside this tenant's acquisition allowlist.")
 
     now = utc_now()
     job = LeadAcquisitionJob(
@@ -513,8 +516,25 @@ def create_lead_acquisition_job(request: LeadAcquisitionJobCreateRequest) -> Lea
             job.events.append("Web research driver is not configured; no external discovery was attempted.")
             job.status = "degraded"
         else:
-            job.events.append("Web research driver is configured; queued for bounded private-worker extraction.")
-            job.status = "queued"
+            try:
+                web_prospects, events = discover_web_research_prospects(
+                    request.query,
+                    request.max_records,
+                    request.target_url,
+                )
+                job.events.extend(events)
+                for prospect_input in web_prospects[: request.max_records]:
+                    prospect = _prospect_from_input(job, prospect_input)
+                    key = _dedupe_key(prospect)
+                    if key in existing_keys:
+                        rejected += 1
+                        job.events.append(f"Rejected duplicate prospect for {prospect.company}.")
+                        continue
+                    existing_keys.add(key)
+                    created.append(prospect)
+            except Exception as error:
+                job.events.append(f"Web research driver failed safely: {error.__class__.__name__}.")
+                job.status = "degraded"
     elif request.source == "browser-worker":
         health = browser_worker_health()
         if not health.enabled:
@@ -736,6 +756,15 @@ def _contains_suppression_language(client_id: str, prospect_input: ProspectInput
         ]
     )
     return any(term.lower() in haystack for term in policy.suppression_terms)
+
+
+def _target_allowed_by_policy(target_url: str, policy: AcquisitionPolicy) -> bool:
+    if not policy.allowed_domains:
+        return True
+    from urllib.parse import urlparse
+
+    hostname = (urlparse(target_url).hostname or "").lower().removeprefix("www.")
+    return any(hostname == domain.lower() or hostname.endswith(f".{domain.lower()}") for domain in policy.allowed_domains)
 
 
 def _dedupe_key(prospect: ProspectRecord) -> str:
