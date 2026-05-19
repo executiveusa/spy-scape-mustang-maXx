@@ -107,6 +107,41 @@ def discover_web_research_prospects(
     return prospects, [f"Search completed for '{query}' with {len(prospects)} normalized result(s)."]
 
 
+def run_browser_worker_job(
+    query: str,
+    target_url: str,
+    max_records: int,
+) -> tuple[list[ProspectInput], list[str]]:
+    worker_url = os.environ.get("MAXX_BROWSER_WORKER_URL", "").strip().rstrip("/")
+    autonomy_enabled = os.environ.get("MAXX_BROWSER_AUTONOMY_ENABLED", "").lower() in {"1", "true", "yes"}
+    if not worker_url or not autonomy_enabled:
+        return [], ["Private browser worker is disabled; no browser action was attempted."]
+
+    headers = {"Content-Type": "application/json"}
+    worker_secret = os.environ.get("MAXX_BROWSER_WORKER_SECRET", "").strip()
+    if worker_secret:
+        headers["X-MAXX-BROWSER-WORKER-SECRET"] = worker_secret
+
+    body = {
+        "query": query,
+        "target_url": target_url,
+        "max_records": max_records,
+        "mode": "prospect-discovery",
+    }
+    payload = json.dumps(body).encode("utf-8")
+    http_request = request.Request(
+        f"{worker_url}/v1/browser/jobs",
+        data=payload,
+        method="POST",
+        headers=headers,
+    )
+    with request.urlopen(http_request, timeout=30) as response:
+        result = json.loads(response.read().decode("utf-8"))
+
+    prospects = _prospects_from_worker_payload(result, max_records)
+    return prospects, [f"Private browser worker returned {len(prospects)} normalized result(s)."]
+
+
 def _firecrawl_post(path: str, api_key: str, body: dict[str, object]) -> dict[str, object]:
     payload = json.dumps(body).encode("utf-8")
     http_request = request.Request(
@@ -120,6 +155,44 @@ def _firecrawl_post(path: str, api_key: str, body: dict[str, object]) -> dict[st
     )
     with request.urlopen(http_request, timeout=20) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def _prospects_from_worker_payload(payload: dict[str, object], max_records: int) -> list[ProspectInput]:
+    raw_results = payload.get("prospects") or payload.get("data") or []
+    if not isinstance(raw_results, list):
+        return []
+
+    prospects: list[ProspectInput] = []
+    for item in raw_results[:max_records]:
+        if not isinstance(item, dict):
+            continue
+        company = str(item.get("company") or item.get("organization") or item.get("name") or "").strip()
+        if not company:
+            continue
+        prospects.append(
+            ProspectInput(
+                name=_optional_string(item.get("contact_name") or item.get("name")),
+                title=_optional_string(item.get("title")),
+                company=company[:120],
+                email=_optional_string(item.get("email")),
+                phone=_optional_string(item.get("phone")),
+                linkedin_url=_optional_string(item.get("linkedin_url")),
+                location=_optional_string(item.get("location")),
+                seniority=_optional_string(item.get("seniority")),
+                department=_optional_string(item.get("department")),
+                organization_domain=_optional_string(item.get("organization_domain") or item.get("domain")),
+                notes=_optional_string(item.get("notes") or item.get("evidence")),
+                source_url=_optional_string(item.get("source_url")),
+            )
+        )
+    return prospects
+
+
+def _optional_string(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _prospects_from_search_payload(payload: dict[str, object], max_records: int) -> list[ProspectInput]:

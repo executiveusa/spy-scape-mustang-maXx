@@ -256,6 +256,8 @@ def create_acquisition_job(request: LeadAcquisitionJobCreateRequest) -> dict[str
         raise HTTPException(status_code=404, detail=f"Unknown client: {error.args[0]}") from error
     except PermissionError as error:
         raise HTTPException(status_code=403, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     return job.model_dump()
 
 
