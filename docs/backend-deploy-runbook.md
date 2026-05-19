@@ -87,6 +87,12 @@ Manual Coolify reconnect, if needed:
 powershell -ExecutionPolicy Bypass -File scripts/connect-coolify-backend.ps1 -UpdateEnv -Deploy
 ```
 
+Browser worker Coolify reconnect, after creating the private app from `backend/browser-worker.coolify.json`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/connect-coolify-browser-worker.ps1 -UpdateEnv -Deploy
+```
+
 ## Production Verification
 
 Controlled demo:

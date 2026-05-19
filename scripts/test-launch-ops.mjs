@@ -26,6 +26,12 @@ const restore = readRequired('scripts/restore-vps-state.ps1')
 assert.match(restore, /\/data\/maxx/, 'restore script must include MAXX data volume')
 assert.match(restore, /\/runtime\/maxx/, 'restore script must include Agent MAXX runtime volume')
 
+const browserWorkerConnect = readRequired('scripts/connect-coolify-browser-worker.ps1')
+assert.match(browserWorkerConnect, /MAXX_BROWSER_WORKER_SECRET/, 'browser worker connector must update worker secret')
+assert.match(browserWorkerConnect, /MAXX_BROWSER_ALLOWED_DOMAINS/, 'browser worker connector must update allowed domains')
+assert.match(browserWorkerConnect, /MAXX_BROWSER_AUTONOMY_ENABLED/, 'browser worker connector must control autonomy flag')
+assert.match(browserWorkerConnect, /deploy\?uuid=/, 'browser worker connector must support Coolify deploy')
+
 for (const doc of [
   'docs/backend-deploy-runbook.md',
   'docs/new-client-15-minute-runbook.md',
