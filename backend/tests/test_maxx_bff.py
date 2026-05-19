@@ -217,6 +217,19 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertIn("maxx_runtime", runtime)
         self.assertNotIn("hermes", runtime)
 
+        ag_ui_response = self.client.get("/v1/maxx/ag-ui/events?client_id=maxx-demo")
+        self.assertEqual(ag_ui_response.status_code, 200)
+        ag_ui = ag_ui_response.json()
+        self.assertEqual(ag_ui["protocol"], "ag-ui")
+        self.assertEqual(ag_ui["client_id"], "maxx-demo")
+        event_types = {event["type"] for event in ag_ui["events"]}
+        self.assertIn("MAXX_RUNTIME_STATE", event_types)
+        self.assertIn("MAXX_TASK_STATE", event_types)
+        self.assertIn("MAXX_HEARTBEAT_STATE", event_types)
+        task_events = [event for event in ag_ui["events"] if event["type"] == "MAXX_TASK_STATE"]
+        self.assertTrue(task_events)
+        self.assertEqual(task_events[0]["payload"]["task_id"], task["task_id"])
+
     def test_lead_acquisition_job_dedupe_and_promotion(self) -> None:
         self.client.post("/v1/clients/maxx-demo/provision")
 

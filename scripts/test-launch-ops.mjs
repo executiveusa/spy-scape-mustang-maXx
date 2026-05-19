@@ -17,6 +17,8 @@ for (const command of ['test:smart-site-story', 'test:operator-auth', 'npx tsc -
 assert.match(verify, /test_browser_worker\.py/, 'verify-production must run browser worker tests')
 assert.match(verify, /operator-session/, 'verify-production must test operator login/session')
 assert.match(verify, /smart-site-story/, 'verify-production must smoke the public story endpoint')
+assert.match(readRequired('backend/README.md'), /\/v1\/maxx\/ag-ui\/events/, 'backend README must document the AG-UI event bridge')
+assert.match(readRequired('docs/production-readiness.md'), /\/v1\/maxx\/ag-ui\/events/, 'production readiness must include AG-UI bridge verification')
 
 const backup = readRequired('scripts/backup-vps-state.ps1')
 assert.match(backup, /\/data\/maxx/, 'backup script must include MAXX data volume')

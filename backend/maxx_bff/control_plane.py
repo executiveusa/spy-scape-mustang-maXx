@@ -914,6 +914,7 @@ def runtime_routes() -> list[RuntimeRoute]:
         RuntimeRoute(path="/v1/maxx/runtime/health", label="Agent MAXX Runtime Health", status="live"),
         RuntimeRoute(path="/v1/maxx/web-research/health", label="MAXX Web Research Health", status="live"),
         RuntimeRoute(path="/v1/maxx/browser/health", label="MAXX Browser Worker Health", status="live"),
+        RuntimeRoute(path="/v1/maxx/ag-ui/events", label="Agent MAXX AG-UI Event Feed", status="live"),
         RuntimeRoute(path="/v1/maxx/runtime/profiles", label="Agent MAXX Profile Registry", status="live"),
         RuntimeRoute(path="/v1/clients", label="Tenant Registry", status="live"),
         RuntimeRoute(path="/v1/lead-desk/tasks", label="Lead Desk Task API", status="live"),

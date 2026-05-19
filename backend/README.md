@@ -40,6 +40,7 @@ The public shell, deploy console, asset pipeline, and command deck now have enou
 - `GET /v1/heartbeats`
 - `GET /v1/maxx/browser/health`
 - `GET /v1/maxx/web-research/health`
+- `GET /v1/maxx/ag-ui/events`
 - `POST /v1/lead-desk/tasks`
 - `GET /v1/lead-desk/tasks`
 - `GET /v1/lead-desk/tasks/{task_id}`
@@ -114,6 +115,12 @@ That brings up both:
 - final outreach approval, suppression-list, and compliance runbooks
 
 This backend supports the v1 MAXX capability: multi-tenant Lead Desk operations backed by Agent MAXX profile homes on one server. Lead Acquisition is a canary workflow that discovers or imports owner-approved prospects, scores and dedupes them, retains evidence, and promotes reviewed prospects into Lead Desk tasks. It can be used for a controlled production demo only when the BFF is private or shared-secret protected, persistent volumes are configured, and `/v1/maxx/runtime/health.execution_ready` is true.
+
+## AG-UI boundary
+
+AG-UI belongs between the Agent MAXX control plane and the operator/backend UI. It does not replace MCP, Firecrawl, Browser Harness, or the private runtime driver. Those systems help Agent MAXX do work; AG-UI standardizes how task state, prospect state, heartbeat state, and runtime state are exposed to human-facing screens.
+
+Wave 1 exposes a polling-safe contract at `GET /v1/maxx/ag-ui/events`. The payload uses an AG-UI-style event envelope with `type`, `event_id`, `run_id`, `timestamp`, and `payload`. This keeps the MAXX UI ready for a future SSE/WebSocket stream without adding a production SDK dependency before the operator console needs live streaming.
 
 ## Private browser worker
 

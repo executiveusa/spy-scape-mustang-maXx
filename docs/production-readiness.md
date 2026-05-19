@@ -152,6 +152,7 @@ The strict command must pass before claiming model-backed Lead Desk execution.
 - `/v1/maxx/runtime/health` reports `execution_ready: true`.
 - `/api/runtime`, `/api/tenants`, and `/api/lead-desk` work through Next API routes.
 - `/api/lead-acquisition` is protected and can create a safe canary job that promotes a reviewed prospect into Lead Desk.
+- `/v1/maxx/ag-ui/events` returns runtime, task, prospect, job, and heartbeat events for the operator UI bridge.
 - FastAPI is not directly reachable from an untrusted public network.
 - Unauthorized `/v1/*` requests return `401` when the shared secret is configured.
 - Persistent backend volumes are configured and backed up.
