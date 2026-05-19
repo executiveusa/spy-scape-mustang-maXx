@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Private Agent MAXX browser worker for allowlisted Lead Acquisition jobs",
   "type": "dockerfile",
-  "dockerfile": "Dockerfile",
+  "dockerfile": "Dockerfile.browser-worker",
   "build": {
     "baseDirectory": "/backend"
   },
