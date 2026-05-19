@@ -13,6 +13,7 @@ Cinematic Agent MAXX smart-site frontend with a FastAPI control plane for the Le
 - Asset redirect endpoint at `/api/assets/`
 - Tenant control at `/tenants/`
 - Lead Desk intake at `/lead-desk/`
+- Lead Acquisition review at `/lead-acquisition/`
 - Private BFF endpoints at `127.0.0.1:8010` for local development
 
 ## Local stack
@@ -48,7 +49,9 @@ The backend now exposes a concrete operator-facing contract under [`backend/`](C
 - `GET /v1/logs`
 - `GET /v1/deploy`
 
-The backend now owns tenant manifests, Agent MAXX profile bindings, Lead Desk task state, and runtime health. App-level auth is intentionally deferred, so the BFF must remain private in any production deployment.
+The backend now owns tenant manifests, Agent MAXX profile bindings, Lead Desk task state, Lead Acquisition prospect state, and runtime health. App-level auth is intentionally deferred, so the BFF must remain private in any production deployment.
+
+Lead Acquisition is a controlled lead-operations workflow, not a raw scraping product. It supports owner-approved prospect imports, source health checks, scoring, dedupe, evidence capture, operator review, and promotion into Lead Desk tasks. Autonomous browser jobs stay disabled by default until tenant policies, allowlists, and review gates are configured.
 
 ## Production readiness
 
@@ -94,5 +97,6 @@ vercel --prod
 - Final MAXX-owned art is still placeholder-driven
 - App-level production auth is deferred; the BFF must stay private
 - Agent MAXX runtime path and OpenRouter credentials must be present before model-backed execution can be claimed
+- FIRECRAWL_API_KEY and MAXX_BROWSER_WORKER_URL are optional private backend capabilities; browser autonomy remains off unless MAXX_BROWSER_AUTONOMY_ENABLED is explicitly enabled for a trusted tenant
 - The public asset library is down to the live placeholder set at roughly 24.6 MB
 - Dependency posture is improved, but there are still moderate advisories to clear before a true production cut

@@ -70,6 +70,7 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         manifest = manifest_response.json()
         self.assertEqual(manifest["client_id"], "maxx-demo")
         self.assertIn("lead-desk", manifest["enabled_workflows"])
+        self.assertIn("lead-acquisition", manifest["enabled_workflows"])
         self.assertTrue((self.data_dir / "maxx.db").exists())
 
     def test_shared_secret_protects_v1_routes_when_configured(self) -> None:
@@ -109,6 +110,7 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertEqual(client_payload["slug"], "acme-dental")
         self.assertEqual(client_payload["manifest"]["business"]["industry"], "Dental Clinic")
         self.assertIn("lead-desk", client_payload["manifest"]["enabled_workflows"])
+        self.assertIn("lead-acquisition", client_payload["manifest"]["enabled_workflows"])
         self.assertEqual(client_payload["maxx_runtime"]["status"], "pending")
 
         duplicate_response = self.client.post(
@@ -209,6 +211,96 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertTrue(runtime["providers"])
         self.assertIn("maxx_runtime", runtime)
         self.assertNotIn("hermes", runtime)
+
+    def test_lead_acquisition_job_dedupe_and_promotion(self) -> None:
+        self.client.post("/v1/clients/maxx-demo/provision")
+
+        sources_response = self.client.get("/v1/lead-acquisition/sources")
+        self.assertEqual(sources_response.status_code, 200)
+        sources = sources_response.json()["sources"]
+        self.assertTrue(any(source["source"] == "manual" and source["enabled"] for source in sources))
+
+        job_payload = {
+            "client_id": "maxx-demo",
+            "source": "authorized-contact-import",
+            "query": "Owner-approved prospects for Lead Desk.",
+            "max_records": 3,
+            "prospects": [
+                {
+                    "name": "Morgan Hale",
+                    "title": "Founder",
+                    "company": "Northstar Growth Studio",
+                    "email": "morgan@example.com",
+                    "phone": "+1-555-0144",
+                    "linkedin_url": "https://www.linkedin.com/in/example-morgan",
+                    "location": "Austin",
+                    "seniority": "Founder",
+                    "department": "Executive",
+                    "organization_domain": "northstargrowth.example",
+                    "notes": "Founder exploring Lead Desk automation and smart-site intake.",
+                },
+                {
+                    "name": "Morgan Hale",
+                    "title": "Founder",
+                    "company": "Northstar Growth Studio",
+                    "email": "morgan@example.com",
+                    "organization_domain": "northstargrowth.example",
+                    "notes": "Duplicate row should not create another prospect.",
+                },
+            ],
+        }
+        create_job_response = self.client.post("/v1/lead-acquisition/jobs", json=job_payload)
+        self.assertEqual(create_job_response.status_code, 200)
+        job = create_job_response.json()
+        self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["discovered_count"], 1)
+        self.assertEqual(job["rejected_count"], 1)
+        self.assertEqual(job["qualified_count"], 1)
+
+        prospects_response = self.client.get("/v1/lead-acquisition/prospects?client_id=maxx-demo")
+        self.assertEqual(prospects_response.status_code, 200)
+        prospects = prospects_response.json()["prospects"]
+        self.assertEqual(len(prospects), 1)
+        prospect = prospects[0]
+        self.assertEqual(prospect["status"], "qualified")
+        self.assertGreaterEqual(prospect["score"], 75)
+        self.assertTrue(prospect["evidence"])
+
+        promote_response = self.client.post(
+            f"/v1/lead-acquisition/prospects/{prospect['prospect_id']}/promote",
+            json={"note": "Approved for operator review.", "preferred_channel": "email"},
+        )
+        self.assertEqual(promote_response.status_code, 200)
+        promotion = promote_response.json()
+        self.assertEqual(promotion["prospect"]["status"], "promoted")
+        self.assertEqual(promotion["lead_desk_task"]["submission"]["source"], "lead-acquisition")
+        self.assertIn("Lead Acquisition", promotion["lead_desk_task"]["submission"]["message"])
+        self.assertIn("maxx_dispatch", promotion["lead_desk_task"])
+
+        heartbeat_response = self.client.get("/v1/heartbeats")
+        self.assertEqual(heartbeat_response.status_code, 200)
+        workflow_ids = {heartbeat["workflow_id"] for heartbeat in heartbeat_response.json()["heartbeats"]}
+        self.assertIn("lead-acquisition", workflow_ids)
+
+    def test_lead_acquisition_blocks_browser_worker_without_policy(self) -> None:
+        blocked_response = self.client.post(
+            "/v1/lead-acquisition/jobs",
+            json={
+                "client_id": "maxx-demo",
+                "source": "browser-worker",
+                "query": "Attempt browser work without explicit tenant approval.",
+                "max_records": 1,
+            },
+        )
+        self.assertEqual(blocked_response.status_code, 403)
+
+        browser_health = self.client.get("/v1/maxx/browser/health")
+        self.assertEqual(browser_health.status_code, 200)
+        self.assertFalse(browser_health.json()["enabled"])
+
+        web_health = self.client.get("/v1/maxx/web-research/health")
+        self.assertEqual(web_health.status_code, 200)
+        self.assertIn(web_health.json()["status"], {"online", "warning"})
 
     def test_lead_desk_task_and_heartbeat_survive_app_restart(self) -> None:
         self.client.post("/v1/clients/maxx-demo/provision")

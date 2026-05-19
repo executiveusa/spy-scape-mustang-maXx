@@ -12,8 +12,11 @@ from .models import (
     ClientAvatar,
     ClientRecord,
     ClientTheme,
+    AcquisitionPolicy,
     HeartbeatSummary,
     IntakeChannel,
+    LeadAcquisitionJob,
+    ProspectRecord,
     RoutingRule,
     RuntimeNote,
     ServiceOffer,
@@ -33,6 +36,9 @@ CLIENTS_PATH = DATA_ROOT / "clients.json"
 WORKFLOWS_PATH = DATA_ROOT / "workflow_packs.json"
 TASKS_PATH = DATA_ROOT / "lead_desk_tasks.json"
 HEARTBEATS_PATH = DATA_ROOT / "heartbeats.json"
+ACQUISITION_JOBS_PATH = DATA_ROOT / "lead_acquisition_jobs.json"
+PROSPECTS_PATH = DATA_ROOT / "lead_acquisition_prospects.json"
+ACQUISITION_POLICIES_PATH = DATA_ROOT / "acquisition_policies.json"
 DB_PATH = DATA_ROOT / "maxx.db"
 
 
@@ -92,6 +98,27 @@ def _create_tables(connection: sqlite3.Connection) -> None:
             payload TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS lead_acquisition_jobs (
+            job_id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS lead_acquisition_prospects (
+            prospect_id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            job_id TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS acquisition_policies (
+            client_id TEXT PRIMARY KEY,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
         """
     )
 
@@ -115,6 +142,33 @@ def _upsert_payload(connection: sqlite3.Connection, table: str, key_column: str,
                 updated_at = excluded.updated_at
             """,
             (key, payload.get("client_id", ""), serialized, timestamp),
+        )
+        return
+    if table == "lead_acquisition_jobs":
+        connection.execute(
+            """
+            INSERT INTO lead_acquisition_jobs (job_id, client_id, payload, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(job_id) DO UPDATE SET
+                client_id = excluded.client_id,
+                payload = excluded.payload,
+                updated_at = excluded.updated_at
+            """,
+            (key, payload.get("client_id", ""), serialized, timestamp),
+        )
+        return
+    if table == "lead_acquisition_prospects":
+        connection.execute(
+            """
+            INSERT INTO lead_acquisition_prospects (prospect_id, client_id, job_id, payload, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(prospect_id) DO UPDATE SET
+                client_id = excluded.client_id,
+                job_id = excluded.job_id,
+                payload = excluded.payload,
+                updated_at = excluded.updated_at
+            """,
+            (key, payload.get("client_id", ""), payload.get("job_id", ""), serialized, timestamp),
         )
         return
     if table == "heartbeats":
@@ -167,6 +221,14 @@ def _migrate_or_seed(connection: sqlite3.Connection) -> None:
         workflow_rows = _read_json(WORKFLOWS_PATH, [item.model_dump() for item in default_workflow_packs()])
         for row in workflow_rows:
             _upsert_payload(connection, "workflow_packs", "workflow_id", row["workflow_id"], row)
+    else:
+        existing_ids = {
+            row["workflow_id"]
+            for row in connection.execute("SELECT workflow_id FROM workflow_packs").fetchall()
+        }
+        for workflow in default_workflow_packs():
+            if workflow.workflow_id not in existing_ids:
+                _upsert_payload(connection, "workflow_packs", "workflow_id", workflow.workflow_id, workflow.model_dump())
 
     if _table_count(connection, "lead_desk_tasks") == 0:
         for row in _read_json(TASKS_PATH, []):
@@ -179,6 +241,25 @@ def _migrate_or_seed(connection: sqlite3.Connection) -> None:
             heartbeat_id = row.get("heartbeat_id")
             if heartbeat_id:
                 _upsert_payload(connection, "heartbeats", "heartbeat_id", heartbeat_id, row)
+
+    if _table_count(connection, "lead_acquisition_jobs") == 0:
+        for row in _read_json(ACQUISITION_JOBS_PATH, []):
+            job_id = row.get("job_id")
+            if job_id:
+                _upsert_payload(connection, "lead_acquisition_jobs", "job_id", job_id, row)
+
+    if _table_count(connection, "lead_acquisition_prospects") == 0:
+        for row in _read_json(PROSPECTS_PATH, []):
+            prospect_id = row.get("prospect_id")
+            if prospect_id:
+                _upsert_payload(connection, "lead_acquisition_prospects", "prospect_id", prospect_id, row)
+
+    if _table_count(connection, "acquisition_policies") == 0:
+        policy_rows = _read_json(ACQUISITION_POLICIES_PATH, [default_acquisition_policy().model_dump()])
+        for row in policy_rows:
+            client_id = row.get("client_id")
+            if client_id:
+                _upsert_payload(connection, "acquisition_policies", "client_id", client_id, row)
 
 
 def default_manifest() -> SmartSiteManifest:
@@ -217,7 +298,7 @@ def default_manifest() -> SmartSiteManifest:
             RoutingRule(when="warm lead", action="follow-up", target="operator-sequence"),
             RoutingRule(when="cold lead", action="nurture", target="email-drip"),
         ],
-        enabled_workflows=["lead-desk"],
+        enabled_workflows=["lead-desk", "lead-acquisition"],
         avatar=ClientAvatar(
             avatar_id="maxx-ops-001",
             display_name="Agent MAXX",
@@ -272,7 +353,7 @@ def manifest_from_request(request: ClientCreateRequest, slug: str) -> SmartSiteM
             RoutingRule(when="warm lead", action="follow-up", target="operator-sequence"),
             RoutingRule(when="cold lead", action="nurture", target="email-drip"),
         ],
-        enabled_workflows=["lead-desk"],
+        enabled_workflows=["lead-desk", "lead-acquisition"],
         avatar=ClientAvatar(
             avatar_id=f"maxx-ops-{slug}",
             display_name="Agent MAXX",
@@ -302,8 +383,28 @@ def default_workflow_packs() -> list[WorkflowPack]:
             outcome_targets=["more leads", "save time", "remove mistakes"],
             status="live",
             seams=["task-queue", "heartbeats", "assignee-model", "future-multi-agent"],
-        )
+        ),
+        WorkflowPack(
+            workflow_id="lead-acquisition",
+            label="Lead Acquisition",
+            capability="Discover, enrich, score, dedupe, and promote owner-approved prospects.",
+            outcome_targets=["more leads", "save time", "remove mistakes"],
+            status="canary",
+            seams=["web-research-driver", "browser-worker", "authorized-contact-import", "operator-review"],
+        ),
     ]
+
+
+def default_acquisition_policy(client_id: str = "maxx-demo") -> AcquisitionPolicy:
+    return AcquisitionPolicy(
+        client_id=client_id,
+        allowed_domains=["example.com", "iana.org"],
+        allowed_sources=["manual", "web-research", "authorized-contact-import"],
+        max_daily_records=25,
+        browser_autonomy_enabled=False,
+        outreach_requires_operator_approval=True,
+        suppression_terms=["do not contact", "unsubscribe"],
+    )
 
 
 def default_clients() -> list[ClientRecord]:
@@ -381,6 +482,58 @@ def save_heartbeats(heartbeats: list[HeartbeatSummary]) -> None:
     ensure_seed_data()
     with _connect() as connection:
         _replace_table(connection, "heartbeats", "heartbeat_id", [heartbeat.model_dump() for heartbeat in heartbeats])
+        connection.commit()
+
+
+def load_acquisition_jobs() -> list[LeadAcquisitionJob]:
+    ensure_seed_data()
+    with _connect() as connection:
+        rows = _load_payloads(connection, "lead_acquisition_jobs", "updated_at")
+    return [LeadAcquisitionJob.model_validate(item) for item in rows]
+
+
+def save_acquisition_jobs(jobs: list[LeadAcquisitionJob]) -> None:
+    ensure_seed_data()
+    with _connect() as connection:
+        _replace_table(connection, "lead_acquisition_jobs", "job_id", [job.model_dump() for job in jobs])
+        connection.commit()
+
+
+def load_prospects() -> list[ProspectRecord]:
+    ensure_seed_data()
+    with _connect() as connection:
+        rows = _load_payloads(connection, "lead_acquisition_prospects", "updated_at")
+    return [ProspectRecord.model_validate(item) for item in rows]
+
+
+def save_prospects(prospects: list[ProspectRecord]) -> None:
+    ensure_seed_data()
+    with _connect() as connection:
+        _replace_table(
+            connection,
+            "lead_acquisition_prospects",
+            "prospect_id",
+            [prospect.model_dump() for prospect in prospects],
+        )
+        connection.commit()
+
+
+def load_acquisition_policies() -> list[AcquisitionPolicy]:
+    ensure_seed_data()
+    with _connect() as connection:
+        rows = _load_payloads(connection, "acquisition_policies", "client_id")
+    return [AcquisitionPolicy.model_validate(item) for item in rows]
+
+
+def save_acquisition_policies(policies: list[AcquisitionPolicy]) -> None:
+    ensure_seed_data()
+    with _connect() as connection:
+        _replace_table(
+            connection,
+            "acquisition_policies",
+            "client_id",
+            [policy.model_dump() for policy in policies],
+        )
         connection.commit()
 
 

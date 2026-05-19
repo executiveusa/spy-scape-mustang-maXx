@@ -6,13 +6,27 @@ from typing import Any
 from uuid import uuid4
 
 from . import maxx_runtime
+from .lead_acquisition_drivers import (
+    browser_worker_health,
+    lead_acquisition_sources,
+    web_research_health,
+)
 from .models import (
+    AcquisitionPolicy,
     ClientCreateRequest,
     ClientRecord,
     HeartbeatSummary,
+    LeadAcquisitionJob,
+    LeadAcquisitionJobCreateRequest,
     LeadDeskSubmission,
     LeadDeskTask,
     LeadQualification,
+    PromotionResult,
+    ProspectEvidence,
+    ProspectInput,
+    ProspectPromotionRequest,
+    ProspectRecord,
+    ProspectStatusUpdate,
     RuntimeNote,
     RuntimeRoute,
     RuntimeSystem,
@@ -29,7 +43,14 @@ from .storage import (
     manifest_from_request,
     save_clients,
     save_heartbeats,
+    load_acquisition_jobs,
+    load_acquisition_policies,
+    load_prospects,
     save_tasks,
+    save_acquisition_jobs,
+    save_acquisition_policies,
+    save_prospects,
+    default_acquisition_policy,
 )
 
 
@@ -89,6 +110,29 @@ def list_workflow_packs() -> list[WorkflowPack]:
 
 def list_heartbeats() -> list[HeartbeatSummary]:
     return load_heartbeats()
+
+
+def acquisition_policy_for(client_id: str) -> AcquisitionPolicy:
+    policies = load_acquisition_policies()
+    for policy in policies:
+        if policy.client_id == client_id:
+            return policy
+
+    policy = default_acquisition_policy(client_id)
+    policies.append(policy)
+    save_acquisition_policies(policies)
+    return policy
+
+
+def list_acquisition_sources() -> dict[str, Any]:
+    return {
+        "sources": [source.model_dump() for source in lead_acquisition_sources()],
+        "policy_defaults": default_acquisition_policy().model_dump(),
+        "product_boundary": (
+            "Agent MAXX exposes Lead Acquisition as a lead operations workflow; "
+            "private research and browser drivers are implementation details."
+        ),
+    }
 
 
 def maxx_wrapper_readiness(client_id: str = "maxx-demo") -> dict[str, Any]:
@@ -420,6 +464,315 @@ def update_task_status(task_id: str, status: str, note: str | None = None) -> Le
     return updated_task
 
 
+def create_lead_acquisition_job(request: LeadAcquisitionJobCreateRequest) -> LeadAcquisitionJob:
+    get_client(request.client_id)
+    policy = acquisition_policy_for(request.client_id)
+    if request.source not in policy.allowed_sources:
+        raise PermissionError(f"Source is not enabled for this tenant: {request.source}")
+    if request.source == "browser-worker" and not policy.browser_autonomy_enabled:
+        raise PermissionError("Browser worker requires explicit tenant policy approval.")
+
+    now = utc_now()
+    job = LeadAcquisitionJob(
+        job_id=f"acq-{uuid4().hex[:10]}",
+        client_id=request.client_id,
+        source=request.source,
+        status="running",
+        query=request.query,
+        target_url=request.target_url,
+        requested_records=request.max_records,
+        discovered_count=0,
+        qualified_count=0,
+        rejected_count=0,
+        events=[
+            f"Lead Acquisition job accepted for {request.source}.",
+            "Operator approval is required before any outreach.",
+        ],
+        created_at=now,
+        updated_at=now,
+    )
+
+    prospects = load_prospects()
+    existing_keys = {_dedupe_key(prospect) for prospect in prospects}
+    created: list[ProspectRecord] = []
+    rejected = 0
+
+    if request.source in {"manual", "authorized-contact-import"}:
+        for prospect_input in request.prospects[: request.max_records]:
+            prospect = _prospect_from_input(job, prospect_input)
+            key = _dedupe_key(prospect)
+            if key in existing_keys:
+                rejected += 1
+                job.events.append(f"Rejected duplicate prospect for {prospect.company}.")
+                continue
+            existing_keys.add(key)
+            created.append(prospect)
+    elif request.source == "web-research":
+        health = web_research_health()
+        if not health.enabled:
+            job.events.append("Web research driver is not configured; no external discovery was attempted.")
+            job.status = "degraded"
+        else:
+            job.events.append("Web research driver is configured; queued for bounded private-worker extraction.")
+            job.status = "queued"
+    elif request.source == "browser-worker":
+        health = browser_worker_health()
+        if not health.enabled:
+            job.events.append("Private browser worker is disabled by tenant policy.")
+            job.status = "blocked"
+        else:
+            job.events.append("Private browser worker queued with tenant allowlist enforcement.")
+            job.status = "queued"
+
+    prospects.extend(created)
+    if created:
+        save_prospects(prospects)
+
+    if job.status == "running":
+        job.status = "completed"
+    job = job.model_copy(
+        update={
+            "discovered_count": len(created),
+            "qualified_count": sum(1 for prospect in created if prospect.status == "qualified"),
+            "rejected_count": rejected,
+            "updated_at": utc_now(),
+        }
+    )
+    jobs = load_acquisition_jobs()
+    jobs.append(job)
+    save_acquisition_jobs(jobs)
+    _sync_acquisition_heartbeat(job.client_id)
+    return job
+
+
+def get_lead_acquisition_job(job_id: str) -> LeadAcquisitionJob:
+    for job in load_acquisition_jobs():
+        if job.job_id == job_id:
+            return job
+    raise KeyError(job_id)
+
+
+def list_lead_acquisition_jobs(client_id: str | None = None) -> list[LeadAcquisitionJob]:
+    jobs = load_acquisition_jobs()
+    if client_id:
+        jobs = [job for job in jobs if job.client_id == client_id]
+    return sorted(jobs, key=lambda job: job.created_at, reverse=True)
+
+
+def list_prospects(
+    client_id: str | None = None,
+    status: str | None = None,
+) -> list[ProspectRecord]:
+    prospects = load_prospects()
+    if client_id:
+        prospects = [prospect for prospect in prospects if prospect.client_id == client_id]
+    if status:
+        prospects = [prospect for prospect in prospects if prospect.status == status]
+    return sorted(prospects, key=lambda prospect: prospect.created_at, reverse=True)
+
+
+def update_prospect_status(prospect_id: str, update: ProspectStatusUpdate) -> ProspectRecord:
+    prospects = load_prospects()
+    updated: ProspectRecord | None = None
+    next_prospects: list[ProspectRecord] = []
+    for prospect in prospects:
+        if prospect.prospect_id != prospect_id:
+            next_prospects.append(prospect)
+            continue
+        reasons = list(prospect.reasons)
+        if update.note:
+            reasons.append(f"Operator note: {update.note}")
+        updated = prospect.model_copy(update={"status": update.status, "reasons": reasons, "updated_at": utc_now()})
+        next_prospects.append(updated)
+
+    if updated is None:
+        raise KeyError(prospect_id)
+    save_prospects(next_prospects)
+    _sync_acquisition_heartbeat(updated.client_id)
+    return updated
+
+
+def promote_prospect_to_lead_desk(
+    prospect_id: str,
+    request: ProspectPromotionRequest | None = None,
+) -> PromotionResult:
+    prospects = load_prospects()
+    prospect = next((item for item in prospects if item.prospect_id == prospect_id), None)
+    if prospect is None:
+        raise KeyError(prospect_id)
+    if prospect.status == "promoted" and prospect.promoted_task_id:
+        raise FileExistsError(prospect.promoted_task_id)
+    if prospect.do_not_contact or prospect.opt_out or prospect.status == "rejected":
+        raise PermissionError("This prospect is not eligible for promotion.")
+
+    request = request or ProspectPromotionRequest()
+    evidence_summary = "; ".join(
+        f"{item.label}: {item.excerpt[:140]}" for item in prospect.evidence[:3]
+    )
+    submission = LeadDeskSubmission(
+        client_id=prospect.client_id,
+        contact_name=prospect.name or f"{prospect.company} contact",
+        company=prospect.company,
+        email=prospect.email,
+        phone=prospect.phone,
+        message=(
+            "Outbound prospect promoted by Agent MAXX Lead Acquisition. "
+            f"Score {prospect.score}/100 ({prospect.confidence}). "
+            f"Reasons: {'; '.join(prospect.reasons)}. "
+            f"Evidence: {evidence_summary or 'operator-provided prospect data'}. "
+            f"Operator note: {request.note or 'review and decide next outreach step'}."
+        ),
+        requested_service="lead-acquisition",
+        timeline="operator review",
+        preferred_channel=request.preferred_channel,
+        source="lead-acquisition",
+    )
+    task = submit_lead(submission)
+    updated = prospect.model_copy(
+        update={
+            "status": "promoted",
+            "promoted_task_id": task.task_id,
+            "updated_at": utc_now(),
+        }
+    )
+    save_prospects([updated if item.prospect_id == prospect_id else item for item in prospects])
+    _sync_acquisition_heartbeat(updated.client_id)
+    return PromotionResult(prospect=updated, lead_desk_task=task)
+
+
+def _prospect_from_input(job: LeadAcquisitionJob, prospect_input: ProspectInput) -> ProspectRecord:
+    score, confidence, reasons, status = _score_prospect(job.client_id, prospect_input)
+    now = utc_now()
+    source_url = prospect_input.source_url or job.target_url
+    evidence = ProspectEvidence(
+        evidence_id=f"ev-{uuid4().hex[:8]}",
+        source=job.source,
+        label="Operator-approved prospect evidence",
+        url=source_url,
+        excerpt=prospect_input.notes or f"{prospect_input.company} was submitted for Agent MAXX review.",
+        captured_at=now,
+    )
+    do_not_contact = _contains_suppression_language(job.client_id, prospect_input)
+    return ProspectRecord(
+        prospect_id=f"prospect-{uuid4().hex[:10]}",
+        client_id=job.client_id,
+        job_id=job.job_id,
+        status="rejected" if do_not_contact else status,
+        source=job.source,
+        name=prospect_input.name,
+        title=prospect_input.title,
+        company=prospect_input.company,
+        email=prospect_input.email,
+        email_status=prospect_input.email_status,
+        phone=prospect_input.phone,
+        linkedin_url=prospect_input.linkedin_url,
+        location=prospect_input.location,
+        seniority=prospect_input.seniority,
+        department=prospect_input.department,
+        organization_domain=prospect_input.organization_domain,
+        score=score,
+        confidence=confidence,
+        reasons=reasons if not do_not_contact else [*reasons, "suppression language detected"],
+        evidence=[evidence],
+        do_not_contact=do_not_contact,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def _score_prospect(client_id: str, prospect_input: ProspectInput) -> tuple[int, str, list[str], str]:
+    manifest = manifest_for(client_id)
+    score = 35
+    reasons: list[str] = ["prospect captured for operator review"]
+    haystack = " ".join(
+        value.lower()
+        for value in [
+            prospect_input.company,
+            prospect_input.title or "",
+            prospect_input.seniority or "",
+            prospect_input.department or "",
+            prospect_input.location or "",
+            prospect_input.notes or "",
+        ]
+    )
+
+    if prospect_input.email:
+        score += 15
+        reasons.append("email evidence present")
+    if prospect_input.phone:
+        score += 10
+        reasons.append("phone evidence present")
+    if prospect_input.organization_domain:
+        score += 10
+        reasons.append("organization domain present")
+    if prospect_input.linkedin_url:
+        score += 10
+        reasons.append("profile URL present")
+    if any(term in haystack for term in ["owner", "founder", "ceo", "president", "director", "vp"]):
+        score += 15
+        reasons.append("seniority suggests decision-maker access")
+    if any(geo.lower() in haystack for geo in manifest.business.geography):
+        score += 5
+        reasons.append("geography matches tenant manifest")
+    if any(offer.label.lower() in haystack or offer.code.lower() in haystack for offer in manifest.business.offers):
+        score += 10
+        reasons.append("offer fit appears in prospect context")
+
+    score = min(score, 100)
+    if score >= 75:
+        return score, "high", reasons, "qualified"
+    if score >= 55:
+        return score, "medium", reasons, "enriched"
+    return score, "low", reasons, "needs-review"
+
+
+def _contains_suppression_language(client_id: str, prospect_input: ProspectInput) -> bool:
+    policy = acquisition_policy_for(client_id)
+    haystack = " ".join(
+        value.lower()
+        for value in [
+            prospect_input.notes or "",
+            prospect_input.email_status or "",
+        ]
+    )
+    return any(term.lower() in haystack for term in policy.suppression_terms)
+
+
+def _dedupe_key(prospect: ProspectRecord) -> str:
+    if prospect.email:
+        return f"email:{prospect.email.lower()}"
+    if prospect.linkedin_url:
+        return f"linkedin:{prospect.linkedin_url.lower().rstrip('/')}"
+    if prospect.organization_domain and prospect.name:
+        return f"domain-name:{prospect.organization_domain.lower()}:{prospect.name.lower()}"
+    return f"company:{prospect.company.lower()}:{prospect.title or ''}:{prospect.location or ''}"
+
+
+def _sync_acquisition_heartbeat(client_id: str) -> None:
+    prospects = list_prospects(client_id=client_id)
+    pending_ids = [
+        prospect.prospect_id
+        for prospect in prospects
+        if prospect.status in {"qualified", "needs-review", "enriched"}
+    ]
+    heartbeat = HeartbeatSummary(
+        heartbeat_id=f"hb-acq-{client_id}",
+        client_id=client_id,
+        workflow_id="lead-acquisition",
+        status="watching" if pending_ids else "clear",
+        next_due_at=utc_now(),
+        summary=f"{len(pending_ids)} prospect(s) awaiting operator review",
+        pending_task_ids=pending_ids[:25],
+    )
+    heartbeats = [
+        item
+        for item in load_heartbeats()
+        if item.client_id != client_id or item.workflow_id != "lead-acquisition"
+    ]
+    heartbeats.append(heartbeat)
+    save_heartbeats(heartbeats)
+
+
 def _sync_heartbeat_for_task(task: LeadDeskTask) -> HeartbeatSummary:
     heartbeats = load_heartbeats()
     remaining_task_ids = [
@@ -502,15 +855,20 @@ def runtime_routes() -> list[RuntimeRoute]:
         RuntimeRoute(path="/deploy", label="Deployment Console", status="live"),
         RuntimeRoute(path="/tenants", label="Tenant Control", status="live"),
         RuntimeRoute(path="/lead-desk", label="Lead Desk Console", status="live"),
+        RuntimeRoute(path="/lead-acquisition", label="Lead Acquisition Console", status="live"),
         RuntimeRoute(path="/assets", label="Asset Pipeline", status="live"),
         RuntimeRoute(path="/api/tenants", label="Tenant Registry API", status="live"),
         RuntimeRoute(path="/api/lead-desk", label="Lead Desk Intake API", status="live"),
+        RuntimeRoute(path="/api/lead-acquisition", label="Lead Acquisition API", status="live"),
         RuntimeRoute(path="/api/runtime", label="Runtime Proxy API", status="live"),
         RuntimeRoute(path="/api/health", label="Frontend Health API", status="live"),
         RuntimeRoute(path="/v1/maxx/runtime/health", label="Agent MAXX Runtime Health", status="live"),
+        RuntimeRoute(path="/v1/maxx/web-research/health", label="MAXX Web Research Health", status="live"),
+        RuntimeRoute(path="/v1/maxx/browser/health", label="MAXX Browser Worker Health", status="live"),
         RuntimeRoute(path="/v1/maxx/runtime/profiles", label="Agent MAXX Profile Registry", status="live"),
         RuntimeRoute(path="/v1/clients", label="Tenant Registry", status="live"),
         RuntimeRoute(path="/v1/lead-desk/tasks", label="Lead Desk Task API", status="live"),
+        RuntimeRoute(path="/v1/lead-acquisition/jobs", label="Lead Acquisition Job API", status="live"),
     ]
 
 
@@ -519,6 +877,8 @@ def runtime_systems() -> list[RuntimeSystem]:
     clients = load_clients()
     workflows = load_workflow_packs()
     heartbeats = load_heartbeats()
+    prospects = load_prospects()
+    source_health = lead_acquisition_sources()
 
     return [
         RuntimeSystem(
@@ -558,6 +918,15 @@ def runtime_systems() -> list[RuntimeSystem]:
             ),
         ),
         RuntimeSystem(
+            name="Lead Acquisition Engine",
+            status="online" if any(source.enabled for source in source_health) else "warning",
+            latency=f"{len(prospects)} prospects",
+            detail=(
+                "Agent MAXX can normalize owner-approved prospects, score fit, dedupe records, "
+                "and promote qualified opportunities into Lead Desk."
+            ),
+        ),
+        RuntimeSystem(
             name="Memory Store",
             status="online" if runtime.available else "warning",
             latency="profile-home",
@@ -589,6 +958,7 @@ def runtime_systems() -> list[RuntimeSystem]:
 def runtime_logs() -> list[RuntimeNote]:
     clients = load_clients()
     tasks = list_tasks()
+    prospects = list_prospects()
     seed_logs = build_seed_log_messages(clients)
     task_logs = [
         RuntimeNote(
@@ -599,4 +969,13 @@ def runtime_logs() -> list[RuntimeNote]:
         )
         for task in tasks[:5]
     ]
-    return task_logs + seed_logs
+    prospect_logs = [
+        RuntimeNote(
+            id=prospect.prospect_id,
+            timestamp=prospect.created_at[11:19],
+            type="success" if prospect.status in {"qualified", "promoted"} else "info",
+            message=f"Lead Acquisition prospect {prospect.company} is {prospect.status} at score {prospect.score}.",
+        )
+        for prospect in prospects[:5]
+    ]
+    return task_logs + prospect_logs + seed_logs

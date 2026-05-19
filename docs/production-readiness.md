@@ -22,6 +22,9 @@ MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
 MAXX_RUNTIME_PROVIDER=openrouter
 MAXX_RUNTIME_MODEL=openrouter/owl-alpha
 MAXX_OPENROUTER_API_KEY=...
+FIRECRAWL_API_KEY=...
+MAXX_BROWSER_WORKER_URL=
+MAXX_BROWSER_AUTONOMY_ENABLED=false
 ```
 
 Set this on Vercel:
@@ -66,6 +69,16 @@ Until auth is implemented, production is acceptable only if the FastAPI service 
 - Tenant mutation endpoints must not be reachable directly from the public internet.
 - `MAXX_BFF_SHARED_SECRET` must be set on both the backend and Vercel while port `8010` is reachable.
 - `MAXX_ALLOW_PUBLIC_BFF=true` is not allowed for real client data.
+
+## Lead Acquisition Policy
+
+Lead Acquisition is production-safe only when it behaves like a controlled lead operations employee:
+
+- Public web discovery runs through the private backend source driver and requires `FIRECRAWL_API_KEY`.
+- Browser automation runs only in a private worker and remains disabled by default with `MAXX_BROWSER_AUTONOMY_ENABLED=false`.
+- Authorized contact imports must come from owner-provided exports, approved search URLs, or explicitly approved sessions.
+- Every prospect must retain source evidence, score rationale, opt-out/DNC fields, and operator review before outreach.
+- Qualified prospects should be promoted into Lead Desk instead of launching direct outreach from the acquisition lane.
 
 ### Backend Exposure Choices
 
@@ -134,6 +147,7 @@ The strict command must pass before claiming model-backed Lead Desk execution.
 - Strict verification passes against the private backend and Vercel preview.
 - `/v1/maxx/runtime/health` reports `execution_ready: true`.
 - `/api/runtime`, `/api/tenants`, and `/api/lead-desk` work through Next API routes.
+- `/api/lead-acquisition` is protected and can create a safe canary job that promotes a reviewed prospect into Lead Desk.
 - FastAPI is not directly reachable from an untrusted public network.
 - Unauthorized `/v1/*` requests return `401` when the shared secret is configured.
 - Persistent backend volumes are configured and backed up.

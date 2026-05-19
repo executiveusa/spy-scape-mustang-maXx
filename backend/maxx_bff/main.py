@@ -10,24 +10,39 @@ from . import maxx_runtime
 from .auth import require_bff_secret, shared_secret_configured
 from .settings import allowed_origins, production_config_warnings
 from .control_plane import (
+    create_lead_acquisition_job,
     create_client,
     get_client,
+    get_lead_acquisition_job,
     get_task,
+    list_acquisition_sources,
+    list_lead_acquisition_jobs,
     list_clients,
     list_heartbeats,
+    list_prospects,
     list_tasks,
     list_workflow_packs,
     manifest_for,
     maxx_wrapper_readiness,
+    promote_prospect_to_lead_desk,
     provision_client,
     quickstart_client,
     runtime_logs,
     runtime_routes,
     runtime_systems,
     submit_lead,
+    update_prospect_status,
     update_task_status,
 )
-from .models import ClientCreateRequest, LeadDeskStatusUpdate, LeadDeskSubmission
+from .lead_acquisition_drivers import browser_worker_health, web_research_health
+from .models import (
+    ClientCreateRequest,
+    LeadAcquisitionJobCreateRequest,
+    LeadDeskStatusUpdate,
+    LeadDeskSubmission,
+    ProspectPromotionRequest,
+    ProspectStatusUpdate,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_JSON_PATH = REPO_ROOT / "package.json"
@@ -143,6 +158,16 @@ def maxx_runtime_providers() -> dict[str, object]:
     }
 
 
+@app.get("/v1/maxx/browser/health", dependencies=[Protected])
+def maxx_browser_health() -> dict[str, object]:
+    return browser_worker_health().model_dump()
+
+
+@app.get("/v1/maxx/web-research/health", dependencies=[Protected])
+def maxx_web_research_health() -> dict[str, object]:
+    return web_research_health().model_dump()
+
+
 @app.get("/v1/hermes/health", dependencies=[Protected])
 def hermes_health_compatibility_alias() -> dict[str, object]:
     return maxx_runtime_health()
@@ -216,6 +241,67 @@ def workflows() -> dict[str, object]:
 @app.get("/v1/heartbeats", dependencies=[Protected])
 def heartbeats() -> dict[str, object]:
     return {"heartbeats": [heartbeat.model_dump() for heartbeat in list_heartbeats()]}
+
+
+@app.get("/v1/lead-acquisition/sources", dependencies=[Protected])
+def lead_acquisition_sources_route() -> dict[str, object]:
+    return list_acquisition_sources()
+
+
+@app.post("/v1/lead-acquisition/jobs", dependencies=[Protected])
+def create_acquisition_job(request: LeadAcquisitionJobCreateRequest) -> dict[str, object]:
+    try:
+        job = create_lead_acquisition_job(request)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=f"Unknown client: {error.args[0]}") from error
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    return job.model_dump()
+
+
+@app.get("/v1/lead-acquisition/jobs", dependencies=[Protected])
+def acquisition_jobs(client_id: str | None = Query(default=None)) -> dict[str, object]:
+    return {"jobs": [job.model_dump() for job in list_lead_acquisition_jobs(client_id=client_id)]}
+
+
+@app.get("/v1/lead-acquisition/jobs/{job_id}", dependencies=[Protected])
+def acquisition_job(job_id: str) -> dict[str, object]:
+    try:
+        return get_lead_acquisition_job(job_id).model_dump()
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=f"Unknown job: {error.args[0]}") from error
+
+
+@app.get("/v1/lead-acquisition/prospects", dependencies=[Protected])
+def acquisition_prospects(
+    client_id: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+) -> dict[str, object]:
+    return {"prospects": [prospect.model_dump() for prospect in list_prospects(client_id=client_id, status=status)]}
+
+
+@app.patch("/v1/lead-acquisition/prospects/{prospect_id}", dependencies=[Protected])
+def patch_acquisition_prospect(prospect_id: str, update: ProspectStatusUpdate) -> dict[str, object]:
+    try:
+        return update_prospect_status(prospect_id, update).model_dump()
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=f"Unknown prospect: {error.args[0]}") from error
+
+
+@app.post("/v1/lead-acquisition/prospects/{prospect_id}/promote", dependencies=[Protected])
+def promote_acquisition_prospect(
+    prospect_id: str,
+    request: ProspectPromotionRequest | None = Body(default=None),
+) -> dict[str, object]:
+    try:
+        result = promote_prospect_to_lead_desk(prospect_id, request)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail=f"Unknown prospect: {error.args[0]}") from error
+    except FileExistsError as error:
+        raise HTTPException(status_code=409, detail=f"Prospect already promoted to task: {error.args[0]}") from error
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    return public_payload(result.model_dump())  # type: ignore[return-value]
 
 
 @app.post("/v1/lead-desk/tasks", dependencies=[Protected])

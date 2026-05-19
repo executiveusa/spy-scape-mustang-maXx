@@ -224,6 +224,52 @@ try {
 
       Write-Host "Verified tenant $clientId with task $($task.task_id)."
     }
+
+    Invoke-Step "Lead Acquisition safe canary" {
+      $sources = Invoke-JsonGet "$BackendUrl/v1/lead-acquisition/sources"
+      if (-not $sources.sources) {
+        throw "Lead Acquisition sources endpoint did not return source health."
+      }
+
+      $job = Invoke-JsonPost "$BackendUrl/v1/lead-acquisition/jobs" @{
+        client_id = "maxx-demo"
+        source = "authorized-contact-import"
+        query = "Production verification owner-approved prospect."
+        max_records = 1
+        prospects = @(
+          @{
+            name = "Verification Prospect"
+            title = "Founder"
+            company = "MAXX Verification Prospect Co"
+            email = "verify-prospect@example.com"
+            phone = "+1-555-0101"
+            location = "Austin"
+            seniority = "Founder"
+            department = "Executive"
+            organization_domain = "verification-prospect.example"
+            notes = "Owner-approved verification prospect for Lead Acquisition canary."
+          }
+        )
+      }
+      if ($job.discovered_count -lt 1) {
+        throw "Lead Acquisition canary did not discover a prospect."
+      }
+
+      $prospects = Invoke-JsonGet "$BackendUrl/v1/lead-acquisition/prospects?client_id=maxx-demo"
+      $candidate = @($prospects.prospects | Where-Object { $_.job_id -eq $job.job_id } | Select-Object -First 1)
+      if (-not $candidate -or -not $candidate.prospect_id) {
+        throw "Lead Acquisition prospect was not persisted."
+      }
+
+      $promotion = Invoke-JsonPost "$BackendUrl/v1/lead-acquisition/prospects/$($candidate.prospect_id)/promote" @{
+        note = "Production verification approved this prospect for Lead Desk review."
+        preferred_channel = "email"
+      }
+      if (-not $promotion.lead_desk_task.task_id) {
+        throw "Lead Acquisition promotion did not create a Lead Desk task."
+      }
+      Write-Host "Verified Lead Acquisition job $($job.job_id) with task $($promotion.lead_desk_task.task_id)."
+    }
   }
 
   if ($FrontendUrl) {
@@ -240,7 +286,7 @@ try {
     }
 
     Invoke-Step "Operator-protected frontend checks" {
-      foreach ($path in @('/api/runtime/', '/api/tenants/', '/api/lead-desk/')) {
+      foreach ($path in @('/api/runtime/', '/api/tenants/', '/api/lead-desk/', '/api/lead-acquisition/')) {
         try {
           Invoke-WebRequest -UseBasicParsing -Uri "$FrontendUrl$path" -TimeoutSec 20 | Out-Null
           throw "Unauthenticated $path unexpectedly succeeded."
@@ -272,7 +318,7 @@ const password = process.env.MAXX_OPERATOR_PASSWORD;
   if (!cookie) {
     throw new Error('operator-session did not return a cookie');
   }
-  for (const path of ['/dashboard/', '/lead-desk/', '/api/runtime/', '/api/lead-desk/']) {
+  for (const path of ['/dashboard/', '/lead-desk/', '/lead-acquisition/', '/api/runtime/', '/api/lead-desk/', '/api/lead-acquisition/']) {
     const response = await fetch(`${base}${path}`, { headers: { cookie }, redirect: 'manual' });
     if (response.status !== 200) {
       throw new Error(`${path} returned ${response.status} after operator login`);
