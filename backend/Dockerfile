@@ -27,6 +27,7 @@ RUN git clone --depth=1 --branch "$HERMES_AGENT_REF" "$HERMES_AGENT_REPO" /opt/a
     pip install --no-cache-dir -e /opt/agent-maxx-runtime
 
 COPY maxx_bff ./maxx_bff
+COPY maxx_browser_worker ./maxx_browser_worker
 
 RUN mkdir -p /data/maxx /runtime/maxx /opt/agent-maxx-runtime && \
     chown -R maxx:maxx /app /data/maxx /runtime/maxx /opt/agent-maxx-runtime

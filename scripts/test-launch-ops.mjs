@@ -26,11 +26,23 @@ const restore = readRequired('scripts/restore-vps-state.ps1')
 assert.match(restore, /\/data\/maxx/, 'restore script must include MAXX data volume')
 assert.match(restore, /\/runtime\/maxx/, 'restore script must include Agent MAXX runtime volume')
 
+const backendDockerfile = readRequired('backend/Dockerfile')
+assert.match(backendDockerfile, /COPY maxx_bff \.\/maxx_bff/, 'backend image must include BFF package')
+assert.match(backendDockerfile, /COPY maxx_browser_worker \.\/maxx_browser_worker/, 'backend image must include browser worker package for Coolify worker app')
+
 const browserWorkerConnect = readRequired('scripts/connect-coolify-browser-worker.ps1')
 assert.match(browserWorkerConnect, /MAXX_BROWSER_WORKER_SECRET/, 'browser worker connector must update worker secret')
 assert.match(browserWorkerConnect, /MAXX_BROWSER_ALLOWED_DOMAINS/, 'browser worker connector must update allowed domains')
 assert.match(browserWorkerConnect, /MAXX_BROWSER_AUTONOMY_ENABLED/, 'browser worker connector must control autonomy flag')
 assert.match(browserWorkerConnect, /deploy\?uuid=/, 'browser worker connector must support Coolify deploy')
+assert.match(browserWorkerConnect, /Resolve-CoolifyConnection/, 'browser worker connector must autodiscover a working Coolify URL/token pair')
+assert.match(browserWorkerConnect, /https:\/\/app\.coolify\.io/, 'browser worker connector must fall back to Coolify Cloud when local env has placeholders')
+assert.match(browserWorkerConnect, /Get-SecretValues/, 'browser worker connector must handle duplicate Coolify token keys safely')
+
+const backendConnect = readRequired('scripts/connect-coolify-backend.ps1')
+assert.match(backendConnect, /Resolve-CoolifyConnection/, 'backend connector must autodiscover a working Coolify URL/token pair')
+assert.match(backendConnect, /https:\/\/app\.coolify\.io/, 'backend connector must fall back to Coolify Cloud when local env has placeholders')
+assert.match(backendConnect, /Get-SecretValues/, 'backend connector must handle duplicate Coolify token keys safely')
 
 for (const doc of [
   'docs/backend-deploy-runbook.md',
