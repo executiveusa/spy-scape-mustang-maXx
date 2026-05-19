@@ -39,16 +39,19 @@ Use `NEXT_PUBLIC_MAXX_BFF_URL` only for local development or controlled internal
 
 ## Backend Deployment Package
 
-The frontend and backend have separate Coolify definitions:
+The frontend, BFF, and browser worker have separate Coolify definitions:
 
 - `coolify.json` is the public/frontend Dockerfile app.
 - `backend/coolify.json` is the private FastAPI/Agent MAXX BFF app.
+- `backend/browser-worker.coolify.json` is the private browser-worker app.
 
 For the backend app, mount persistent volumes at:
 
 - `/data/maxx` for SQLite tenant/task/workflow state at `/data/maxx/maxx.db`.
 - `/runtime/maxx` for Agent MAXX profile homes and workspace state.
 - `/opt/agent-maxx-runtime` for the private Agent MAXX runtime driver checkout.
+
+For the browser worker app, keep the service private, set `MAXX_BROWSER_WORKER_SECRET`, and leave `MAXX_BROWSER_AUTONOMY_ENABLED=false` until the VPS has browser harness dependencies installed and tenant allowlists are reviewed.
 
 After the private backend has a reachable tunnel/private origin, set `MAXX_BFF_URL` in Vercel to that origin and redeploy the preview.
 

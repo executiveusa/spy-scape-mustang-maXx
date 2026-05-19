@@ -70,6 +70,13 @@ try {
     }
   }
 
+  Invoke-Step "Browser worker tests" {
+    py -3 -m unittest backend\tests\test_browser_worker.py -v
+    if ($LASTEXITCODE -ne 0) {
+      throw "Browser worker tests failed with exit code $LASTEXITCODE."
+    }
+  }
+
   Invoke-Step "Operator auth contract" {
     npm run test:operator-auth
     if ($LASTEXITCODE -ne 0) {
