@@ -20,7 +20,7 @@ type Tenant = {
     }
     enabled_workflows: string[]
   }
-  hermes: {
+  maxx_runtime: {
     profile_name: string
     status: string
     provider: string
@@ -104,7 +104,7 @@ export default function TenantsPage() {
         throw new Error('detail' in payload && payload.detail ? payload.detail : 'Tenant creation failed.')
       }
 
-      setMessage(`Tenant ${(payload as Tenant).client_id} created. Provision the Hermes profile when ready.`)
+      setMessage(`Tenant ${(payload as Tenant).client_id} created. Provision the Agent MAXX profile when ready.`)
       setForm(emptyForm)
       await loadTenants()
     } catch (createError) {
@@ -132,7 +132,7 @@ export default function TenantsPage() {
       }
 
       const tenant = payload as Tenant
-      setMessage(`Tenant ${tenant.client_id} provisioned as ${tenant.status}; Hermes profile status is ${tenant.hermes.status}.`)
+      setMessage(`Tenant ${tenant.client_id} provisioned as ${tenant.status}; Agent MAXX profile status is ${tenant.maxx_runtime.status}.`)
       await loadTenants()
     } catch (provisionError) {
       setError(provisionError instanceof Error ? provisionError.message : 'Provisioning failed.')
@@ -155,7 +155,7 @@ export default function TenantsPage() {
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70 sm:text-base">
               This operator surface creates tenant records, seeds the smart-site manifest, and provisions
-              the Hermes profile binding that the Lead Desk workflow depends on.
+              the Agent MAXX profile binding that the Lead Desk workflow depends on.
             </p>
           </div>
 
@@ -181,8 +181,8 @@ export default function TenantsPage() {
           <MetricCard label="Tenants" value={`${tenants.length}`} detail="Client records in the MAXX control plane." />
           <MetricCard
             label="Profiles Ready"
-            value={`${tenants.filter((tenant) => tenant.hermes.status === 'ready').length}`}
-            detail="Hermes profiles with full vendor-backed setup."
+            value={`${tenants.filter((tenant) => tenant.maxx_runtime.status === 'ready').length}`}
+            detail="Agent MAXX profiles with full runtime setup."
           />
           <MetricCard
             label="Lead Desk Enabled"
@@ -314,15 +314,15 @@ export default function TenantsPage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <StatusBadge status={tenant.status} />
-                        <StatusBadge status={tenant.hermes.status} />
+                        <StatusBadge status={tenant.maxx_runtime.status} />
                       </div>
                     </div>
 
                     <p className="mt-3 text-sm leading-6 text-white/65">{tenant.manifest.business.summary}</p>
 
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <MiniCard label="Profile" value={tenant.hermes.profile_name} />
-                      <MiniCard label="Provider" value={tenant.hermes.provider} />
+                      <MiniCard label="Profile" value={tenant.maxx_runtime.profile_name} />
+                      <MiniCard label="Provider" value={tenant.maxx_runtime.provider} />
                       <MiniCard label="Workflow" value={tenant.manifest.enabled_workflows.join(', ')} />
                     </div>
 

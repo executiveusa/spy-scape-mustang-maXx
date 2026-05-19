@@ -21,12 +21,12 @@ class MaxxBffIntegrationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.data_dir = Path(self.temp_dir.name) / "data"
-        self.hermes_home = Path(self.temp_dir.name) / "hermes-root"
+        self.runtime_home = Path(self.temp_dir.name) / "maxx-runtime-root"
 
         os.environ.pop("MAXX_BFF_SHARED_SECRET", None)
         os.environ["MAXX_DATA_DIR"] = str(self.data_dir)
-        os.environ["MAXX_HERMES_HOME"] = str(self.hermes_home)
-        os.environ["MAXX_HERMES_VENDOR_PATH"] = str(HERMES_VENDOR_PATH)
+        os.environ["MAXX_RUNTIME_HOME"] = str(self.runtime_home)
+        os.environ["MAXX_RUNTIME_VENDOR_PATH"] = str(HERMES_VENDOR_PATH)
 
         if str(BACKEND_ROOT) not in sys.path:
             sys.path.insert(0, str(BACKEND_ROOT))
@@ -41,32 +41,36 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.temp_dir.cleanup()
         for key in [
             "MAXX_DATA_DIR",
-            "MAXX_HERMES_HOME",
-            "MAXX_HERMES_VENDOR_PATH",
+            "MAXX_RUNTIME_HOME",
+            "MAXX_RUNTIME_VENDOR_PATH",
             "MAXX_ENV",
             "MAXX_ALLOWED_ORIGINS",
             "MAXX_BFF_SHARED_SECRET",
         ]:
             os.environ.pop(key, None)
 
-    def test_hermes_health_and_client_provisioning(self) -> None:
-        health_response = self.client.get("/v1/hermes/health")
+    def test_maxx_runtime_health_and_client_provisioning(self) -> None:
+        health_response = self.client.get("/v1/maxx/runtime/health")
         self.assertEqual(health_response.status_code, 200)
         self.assertIn(health_response.json()["status"], {"ready", "provider-missing", "degraded", "vendor-missing"})
+        profiles_response = self.client.get("/v1/maxx/runtime/profiles")
+        self.assertEqual(profiles_response.status_code, 200)
+        self.assertIn("profiles", profiles_response.json())
 
         provision_response = self.client.post("/v1/clients/maxx-demo/provision")
         self.assertEqual(provision_response.status_code, 200)
         payload = provision_response.json()
         self.assertEqual(payload["client_id"], "maxx-demo")
         self.assertIn(payload["status"], {"live", "degraded"})
-        self.assertTrue(Path(payload["hermes"]["profile_home"]).exists())
-        self.assertTrue((Path(payload["hermes"]["profile_home"]) / "SOUL.md").exists())
+        self.assertTrue(Path(payload["maxx_runtime"]["profile_home"]).exists())
+        self.assertTrue((Path(payload["maxx_runtime"]["profile_home"]) / "SOUL.md").exists())
 
         manifest_response = self.client.get("/v1/clients/maxx-demo/manifest")
         self.assertEqual(manifest_response.status_code, 200)
         manifest = manifest_response.json()
         self.assertEqual(manifest["client_id"], "maxx-demo")
         self.assertIn("lead-desk", manifest["enabled_workflows"])
+        self.assertIn("lead-acquisition", manifest["enabled_workflows"])
         self.assertTrue((self.data_dir / "maxx.db").exists())
 
     def test_shared_secret_protects_v1_routes_when_configured(self) -> None:
@@ -78,9 +82,11 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.client = TestClient(self.main.app)
 
         self.assertEqual(self.client.get("/health").status_code, 200)
-        self.assertEqual(self.client.get("/v1/hermes/health").status_code, 401)
-        authorized = self.client.get("/v1/hermes/health", headers={"X-MAXX-BFF-SECRET": "test-secret"})
+        self.assertEqual(self.client.get("/v1/maxx/runtime/health").status_code, 401)
+        authorized = self.client.get("/v1/maxx/runtime/health", headers={"X-MAXX-BFF-SECRET": "test-secret"})
         self.assertEqual(authorized.status_code, 200)
+        compatibility = self.client.get("/v1/hermes/health", headers={"X-MAXX-BFF-SECRET": "test-secret"})
+        self.assertEqual(compatibility.status_code, 200)
 
     def test_client_creation_duplicate_guard_and_provisioning(self) -> None:
         create_response = self.client.post(
@@ -104,7 +110,8 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertEqual(client_payload["slug"], "acme-dental")
         self.assertEqual(client_payload["manifest"]["business"]["industry"], "Dental Clinic")
         self.assertIn("lead-desk", client_payload["manifest"]["enabled_workflows"])
-        self.assertEqual(client_payload["hermes"]["status"], "pending")
+        self.assertIn("lead-acquisition", client_payload["manifest"]["enabled_workflows"])
+        self.assertEqual(client_payload["maxx_runtime"]["status"], "pending")
 
         duplicate_response = self.client.post(
             "/v1/clients",
@@ -119,17 +126,18 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertEqual(provision_response.status_code, 200)
         provisioned = provision_response.json()
         self.assertIn(provisioned["status"], {"live", "degraded"})
-        self.assertEqual(provisioned["hermes"]["profile_name"], "acme-dental")
-        self.assertTrue(Path(provisioned["hermes"]["profile_home"]).exists())
-        soul = (Path(provisioned["hermes"]["profile_home"]) / "SOUL.md").read_text(encoding="utf-8")
-        self.assertIn("Agent MAXX is a branded smart-site employee layer on top of Hermes", soul)
+        self.assertEqual(provisioned["maxx_runtime"]["profile_name"], "acme-dental")
+        self.assertTrue(Path(provisioned["maxx_runtime"]["profile_home"]).exists())
+        soul = (Path(provisioned["maxx_runtime"]["profile_home"]) / "SOUL.md").read_text(encoding="utf-8")
+        self.assertIn("You are Agent MAXX.", soul)
+        self.assertNotIn("Hermes", soul)
 
     def test_maxx_quickstart_and_readiness_contract(self) -> None:
         quickstart_response = self.client.post("/v1/maxx/quickstart")
         self.assertEqual(quickstart_response.status_code, 200)
         quickstart = quickstart_response.json()
         self.assertEqual(quickstart["client"]["client_id"], "maxx-demo")
-        self.assertEqual(quickstart["readiness"]["runtime_wrapper"]["base_runtime"], "Hermes Agent")
+        self.assertEqual(quickstart["readiness"]["runtime_wrapper"]["base_runtime"], "Agent MAXX Runtime")
         self.assertEqual(quickstart["readiness"]["runtime_wrapper"]["customized_as"], "Agent MAXX Lead Desk employee")
         self.assertTrue(quickstart["readiness"]["lead_desk_enabled"])
         self.assertIn(quickstart["readiness"]["run_mode"], {"model-backed", "profile-backed-staging", "not-ready"})
@@ -138,7 +146,7 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertEqual(readiness_response.status_code, 200)
         readiness = readiness_response.json()
         self.assertEqual(readiness["product"], "Agent MAXX")
-        self.assertEqual(readiness["runtime_wrapper"]["tenant_model"], "one Hermes profile per client on one server")
+        self.assertEqual(readiness["runtime_wrapper"]["tenant_model"], "one Agent MAXX profile per client on one server")
         self.assertIn("today_path", readiness)
 
     def test_lead_desk_task_round_trip(self) -> None:
@@ -171,9 +179,9 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertEqual(task["heartbeat_summary"]["workflow_id"], "lead-desk")
         self.assertIn(task["task_id"], task["heartbeat_summary"]["pending_task_ids"])
         self.assertEqual(len(task["workspace_files"]), 2)
-        self.assertIn("hermes_dispatch", task)
+        self.assertIn("maxx_dispatch", task)
         self.assertIn(
-            task["hermes_dispatch"]["status"],
+            task["maxx_dispatch"]["status"],
             {"provider-missing", "completed", "dispatch-failed", "dispatch-empty", "dispatch-deferred", "vendor-missing"},
         )
         for file_path in task["workspace_files"]:
@@ -201,6 +209,98 @@ class MaxxBffIntegrationTests(unittest.TestCase):
         self.assertTrue(runtime["workflow_packs"])
         self.assertTrue(runtime["heartbeats"])
         self.assertTrue(runtime["providers"])
+        self.assertIn("maxx_runtime", runtime)
+        self.assertNotIn("hermes", runtime)
+
+    def test_lead_acquisition_job_dedupe_and_promotion(self) -> None:
+        self.client.post("/v1/clients/maxx-demo/provision")
+
+        sources_response = self.client.get("/v1/lead-acquisition/sources")
+        self.assertEqual(sources_response.status_code, 200)
+        sources = sources_response.json()["sources"]
+        self.assertTrue(any(source["source"] == "manual" and source["enabled"] for source in sources))
+
+        job_payload = {
+            "client_id": "maxx-demo",
+            "source": "authorized-contact-import",
+            "query": "Owner-approved prospects for Lead Desk.",
+            "max_records": 3,
+            "prospects": [
+                {
+                    "name": "Morgan Hale",
+                    "title": "Founder",
+                    "company": "Northstar Growth Studio",
+                    "email": "morgan@example.com",
+                    "phone": "+1-555-0144",
+                    "linkedin_url": "https://www.linkedin.com/in/example-morgan",
+                    "location": "Austin",
+                    "seniority": "Founder",
+                    "department": "Executive",
+                    "organization_domain": "northstargrowth.example",
+                    "notes": "Founder exploring Lead Desk automation and smart-site intake.",
+                },
+                {
+                    "name": "Morgan Hale",
+                    "title": "Founder",
+                    "company": "Northstar Growth Studio",
+                    "email": "morgan@example.com",
+                    "organization_domain": "northstargrowth.example",
+                    "notes": "Duplicate row should not create another prospect.",
+                },
+            ],
+        }
+        create_job_response = self.client.post("/v1/lead-acquisition/jobs", json=job_payload)
+        self.assertEqual(create_job_response.status_code, 200)
+        job = create_job_response.json()
+        self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["discovered_count"], 1)
+        self.assertEqual(job["rejected_count"], 1)
+        self.assertEqual(job["qualified_count"], 1)
+
+        prospects_response = self.client.get("/v1/lead-acquisition/prospects?client_id=maxx-demo")
+        self.assertEqual(prospects_response.status_code, 200)
+        prospects = prospects_response.json()["prospects"]
+        self.assertEqual(len(prospects), 1)
+        prospect = prospects[0]
+        self.assertEqual(prospect["status"], "qualified")
+        self.assertGreaterEqual(prospect["score"], 75)
+        self.assertTrue(prospect["evidence"])
+
+        promote_response = self.client.post(
+            f"/v1/lead-acquisition/prospects/{prospect['prospect_id']}/promote",
+            json={"note": "Approved for operator review.", "preferred_channel": "email"},
+        )
+        self.assertEqual(promote_response.status_code, 200)
+        promotion = promote_response.json()
+        self.assertEqual(promotion["prospect"]["status"], "promoted")
+        self.assertEqual(promotion["lead_desk_task"]["submission"]["source"], "lead-acquisition")
+        self.assertIn("Lead Acquisition", promotion["lead_desk_task"]["submission"]["message"])
+        self.assertIn("maxx_dispatch", promotion["lead_desk_task"])
+
+        heartbeat_response = self.client.get("/v1/heartbeats")
+        self.assertEqual(heartbeat_response.status_code, 200)
+        workflow_ids = {heartbeat["workflow_id"] for heartbeat in heartbeat_response.json()["heartbeats"]}
+        self.assertIn("lead-acquisition", workflow_ids)
+
+    def test_lead_acquisition_blocks_browser_worker_without_policy(self) -> None:
+        blocked_response = self.client.post(
+            "/v1/lead-acquisition/jobs",
+            json={
+                "client_id": "maxx-demo",
+                "source": "browser-worker",
+                "query": "Attempt browser work without explicit tenant approval.",
+                "max_records": 1,
+            },
+        )
+        self.assertEqual(blocked_response.status_code, 403)
+
+        browser_health = self.client.get("/v1/maxx/browser/health")
+        self.assertEqual(browser_health.status_code, 200)
+        self.assertFalse(browser_health.json()["enabled"])
+
+        web_health = self.client.get("/v1/maxx/web-research/health")
+        self.assertEqual(web_health.status_code, 200)
+        self.assertIn(web_health.json()["status"], {"online", "warning"})
 
     def test_lead_desk_task_and_heartbeat_survive_app_restart(self) -> None:
         self.client.post("/v1/clients/maxx-demo/provision")

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { isOperatorAuthConfigured, operatorSessionFromRequest } from '@/lib/operatorAuth'
 
-const PROTECTED_PAGE_PREFIXES = ['/dashboard', '/deploy', '/tenants', '/lead-desk']
-const PROTECTED_API_PREFIXES = ['/api/runtime', '/api/tenants', '/api/lead-desk']
+const PROTECTED_PAGE_PREFIXES = ['/dashboard', '/deploy', '/tenants', '/lead-desk', '/lead-acquisition']
+const PROTECTED_API_PREFIXES = ['/api/runtime', '/api/tenants', '/api/lead-desk', '/api/lead-acquisition']
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
@@ -47,5 +47,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/deploy/:path*', '/tenants/:path*', '/lead-desk/:path*', '/api/runtime/:path*', '/api/tenants/:path*', '/api/lead-desk/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/deploy/:path*',
+    '/tenants/:path*',
+    '/lead-desk/:path*',
+    '/lead-acquisition/:path*',
+    '/api/runtime/:path*',
+    '/api/tenants/:path*',
+    '/api/lead-desk/:path*',
+    '/api/lead-acquisition/:path*',
+  ],
 }

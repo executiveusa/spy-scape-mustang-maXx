@@ -13,7 +13,7 @@
 
 - Make backend port `8010` private by firewall, VPN, internal proxy, or tunnel.
 - Rotate setup-era OpenRouter, Coolify, Vercel, BFF shared-secret, and operator auth secrets.
-- Verify backups for `/data/maxx` and `/runtime/hermes`.
+- Verify backups for `/data/maxx` and `/runtime/maxx`.
 - Run the production verification script after every env or deployment change.
 
 ## Non-Blocking CI Annotations

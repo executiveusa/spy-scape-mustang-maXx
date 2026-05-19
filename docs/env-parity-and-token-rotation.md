@@ -20,13 +20,13 @@ Required backend values:
 - `MAXX_ALLOWED_ORIGINS=https://spy-scape-mustang-maxx.vercel.app`
 - `MAXX_BFF_SHARED_SECRET`
 - `MAXX_DATA_DIR=/data/maxx`
-- `MAXX_HERMES_HOME=/runtime/hermes`
-- `MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent`
-- `MAXX_HERMES_PROVIDER=openrouter`
-- `MAXX_HERMES_MODEL=openrouter/owl-alpha`
+- `MAXX_RUNTIME_HOME=/runtime/maxx`
+- `MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime`
+- `MAXX_RUNTIME_PROVIDER=openrouter`
+- `MAXX_RUNTIME_MODEL=openrouter/owl-alpha`
 - `MAXX_OPENROUTER_API_KEY`
 
-Persistent volumes must cover `/data/maxx` and `/runtime/hermes`.
+Persistent volumes must cover `/data/maxx` and `/runtime/maxx`.
 
 ## GitHub / Coolify Deploy
 

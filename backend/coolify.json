@@ -2,7 +2,7 @@
   "$schema": "https://cdn.coollabs.io/coolify/schema.json",
   "name": "agent-maxx-bff",
   "version": "1.0.0",
-  "description": "Private Agent MAXX FastAPI control plane for Hermes-backed Lead Desk execution",
+  "description": "Private Agent MAXX FastAPI control plane for Lead Desk execution",
   "type": "dockerfile",
   "dockerfile": "Dockerfile",
   "build": {
@@ -22,19 +22,19 @@
       "value": "/data/maxx"
     },
     {
-      "key": "MAXX_HERMES_HOME",
-      "value": "/runtime/hermes"
+      "key": "MAXX_RUNTIME_HOME",
+      "value": "/runtime/maxx"
     },
     {
-      "key": "MAXX_HERMES_VENDOR_PATH",
-      "value": "/opt/hermes-agent"
+      "key": "MAXX_RUNTIME_VENDOR_PATH",
+      "value": "/opt/agent-maxx-runtime"
     },
     {
-      "key": "MAXX_HERMES_PROVIDER",
+      "key": "MAXX_RUNTIME_PROVIDER",
       "value": "openrouter"
     },
     {
-      "key": "MAXX_HERMES_MODEL",
+      "key": "MAXX_RUNTIME_MODEL",
       "value": "openrouter/owl-alpha"
     }
   ],
@@ -55,12 +55,12 @@
       "target": "/data/maxx"
     },
     {
-      "source": "agent-maxx-hermes-runtime",
-      "target": "/runtime/hermes"
+      "source": "agent-maxx-runtime",
+      "target": "/runtime/maxx"
     },
     {
-      "source": "agent-maxx-hermes-vendor",
-      "target": "/opt/hermes-agent"
+      "source": "agent-maxx-runtime-driver",
+      "target": "/opt/agent-maxx-runtime"
     }
   ]
 }

@@ -4,6 +4,7 @@ param(
   [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET,
   [string]$OperatorPassword = $env:MAXX_OPERATOR_PASSWORD,
   [switch]$RequireLiveStack,
+  [switch]$RequireMaxxRuntimeExecutionReady,
   [switch]$RequireHermesExecutionReady
 )
 
@@ -90,6 +91,13 @@ try {
     }
   }
 
+  Invoke-Step "Agent MAXX visible identity contract" {
+    npm run test:maxx-visible-identity
+    if ($LASTEXITCODE -ne 0) {
+      throw "Agent MAXX visible identity contract failed with exit code $LASTEXITCODE."
+    }
+  }
+
   Invoke-Step "Next.js production build" {
     npm run build
     if ($LASTEXITCODE -ne 0) {
@@ -116,7 +124,7 @@ try {
       if (-not $health.service -or $health.service -ne 'agent-maxx-bff') {
         throw "Unexpected BFF health payload from $BackendUrl/health"
       }
-      Write-Host "BFF status: $($health.status); Hermes: $($health.hermes)"
+      Write-Host "BFF status: $($health.status); runtime: $($health.runtime)"
       $script:backendReachable = $true
     }
   } catch {
@@ -130,8 +138,8 @@ try {
     if ($BffSharedSecret) {
       Invoke-Step "BFF shared-secret gate" {
         try {
-          Invoke-WebRequest -UseBasicParsing -Uri "$BackendUrl/v1/hermes/health" -TimeoutSec 15 | Out-Null
-          throw "Unauthenticated /v1/hermes/health unexpectedly succeeded."
+          Invoke-WebRequest -UseBasicParsing -Uri "$BackendUrl/v1/maxx/runtime/health" -TimeoutSec 15 | Out-Null
+          throw "Unauthenticated /v1/maxx/runtime/health unexpectedly succeeded."
         } catch {
           if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) {
             Write-Host "Unauthenticated /v1 requests are rejected."
@@ -144,18 +152,18 @@ try {
       Write-Warning "MAXX_BFF_SHARED_SECRET is not set for verification; skipping unauthorized /v1 gate check."
     }
 
-    Invoke-Step "Hermes runtime readiness" {
-      $hermes = Invoke-JsonGet "$BackendUrl/v1/hermes/health"
-      Write-Host "Hermes status: $($hermes.status); execution_ready: $($hermes.execution_ready)"
-      if ($RequireHermesExecutionReady -and -not $hermes.execution_ready) {
-        throw "Hermes execution_ready is false. Resolve vendor path and provider credentials before launch."
+    Invoke-Step "Agent MAXX runtime readiness" {
+      $runtime = Invoke-JsonGet "$BackendUrl/v1/maxx/runtime/health"
+      Write-Host "Agent MAXX runtime status: $($runtime.status); execution_ready: $($runtime.execution_ready)"
+      if (($RequireMaxxRuntimeExecutionReady -or $RequireHermesExecutionReady) -and -not $runtime.execution_ready) {
+        throw "Agent MAXX runtime execution_ready is false. Resolve runtime path and provider credentials before launch."
       }
     }
 
     Invoke-Step "Agent MAXX wrapper readiness" {
       $readiness = Invoke-JsonGet "$BackendUrl/v1/maxx/readiness"
-      if ($readiness.runtime_wrapper.base_runtime -ne 'Hermes Agent') {
-        throw "MAXX readiness endpoint did not report Hermes Agent as the base runtime."
+      if ($readiness.runtime_wrapper.base_runtime -ne 'Agent MAXX Runtime') {
+        throw "MAXX readiness endpoint did not report Agent MAXX Runtime as the base runtime."
       }
       if (-not $readiness.can_run_today) {
         throw "Agent MAXX is not ready to run today: $($readiness.blockers -join '; ')"
@@ -216,6 +224,52 @@ try {
 
       Write-Host "Verified tenant $clientId with task $($task.task_id)."
     }
+
+    Invoke-Step "Lead Acquisition safe canary" {
+      $sources = Invoke-JsonGet "$BackendUrl/v1/lead-acquisition/sources"
+      if (-not $sources.sources) {
+        throw "Lead Acquisition sources endpoint did not return source health."
+      }
+
+      $job = Invoke-JsonPost "$BackendUrl/v1/lead-acquisition/jobs" @{
+        client_id = "maxx-demo"
+        source = "authorized-contact-import"
+        query = "Production verification owner-approved prospect."
+        max_records = 1
+        prospects = @(
+          @{
+            name = "Verification Prospect"
+            title = "Founder"
+            company = "MAXX Verification Prospect Co"
+            email = "verify-prospect@example.com"
+            phone = "+1-555-0101"
+            location = "Austin"
+            seniority = "Founder"
+            department = "Executive"
+            organization_domain = "verification-prospect.example"
+            notes = "Owner-approved verification prospect for Lead Acquisition canary."
+          }
+        )
+      }
+      if ($job.discovered_count -lt 1) {
+        throw "Lead Acquisition canary did not discover a prospect."
+      }
+
+      $prospects = Invoke-JsonGet "$BackendUrl/v1/lead-acquisition/prospects?client_id=maxx-demo"
+      $candidate = @($prospects.prospects | Where-Object { $_.job_id -eq $job.job_id } | Select-Object -First 1)
+      if (-not $candidate -or -not $candidate.prospect_id) {
+        throw "Lead Acquisition prospect was not persisted."
+      }
+
+      $promotion = Invoke-JsonPost "$BackendUrl/v1/lead-acquisition/prospects/$($candidate.prospect_id)/promote" @{
+        note = "Production verification approved this prospect for Lead Desk review."
+        preferred_channel = "email"
+      }
+      if (-not $promotion.lead_desk_task.task_id) {
+        throw "Lead Acquisition promotion did not create a Lead Desk task."
+      }
+      Write-Host "Verified Lead Acquisition job $($job.job_id) with task $($promotion.lead_desk_task.task_id)."
+    }
   }
 
   if ($FrontendUrl) {
@@ -232,7 +286,7 @@ try {
     }
 
     Invoke-Step "Operator-protected frontend checks" {
-      foreach ($path in @('/api/runtime/', '/api/tenants/', '/api/lead-desk/')) {
+      foreach ($path in @('/api/runtime/', '/api/tenants/', '/api/lead-desk/', '/api/lead-acquisition/')) {
         try {
           Invoke-WebRequest -UseBasicParsing -Uri "$FrontendUrl$path" -TimeoutSec 20 | Out-Null
           throw "Unauthenticated $path unexpectedly succeeded."
@@ -264,7 +318,7 @@ const password = process.env.MAXX_OPERATOR_PASSWORD;
   if (!cookie) {
     throw new Error('operator-session did not return a cookie');
   }
-  for (const path of ['/dashboard/', '/lead-desk/', '/api/runtime/', '/api/lead-desk/']) {
+  for (const path of ['/dashboard/', '/lead-desk/', '/lead-acquisition/', '/api/runtime/', '/api/lead-desk/', '/api/lead-acquisition/']) {
     const response = await fetch(`${base}${path}`, { headers: { cookie }, redirect: 'manual' });
     if (response.status !== 200) {
       throw new Error(`${path} returned ${response.status} after operator login`);

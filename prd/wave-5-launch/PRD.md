@@ -11,7 +11,7 @@ Make Agent MAXX deployable and repeatable as a client product.
 - launch docs and operator runbooks
 - repeatable tenant onboarding
 - preview and production parity
-- VPS backup instructions for `/data/maxx` and `/runtime/hermes`
+- VPS backup instructions for `/data/maxx` and `/runtime/maxx`
 - temporary token rotation and Vercel/Coolify env parity checks
 
 ## Acceptance

@@ -1,14 +1,14 @@
 # Agent MAXX Backend Deploy Runbook
 
-Agent MAXX ships as a Vercel frontend backed by a VPS/Coolify FastAPI + Hermes runtime.
+Agent MAXX ships as a Vercel frontend backed by a VPS/Coolify FastAPI + Agent MAXX runtime.
 
 ## Current Verified Shape
 
 - Frontend: Vercel project `spy-scape-mustang-maxx`.
 - Backend: Coolify/VPS application `agent-maxx-bff`.
 - Backend port: `8010`.
-- Runtime: FastAPI BFF wraps Hermes Agent and OpenRouter.
-- Persistence: SQLite under `/data/maxx`; Hermes operational memory under `/runtime/hermes`.
+- Runtime: FastAPI BFF exposes Agent MAXX and routes model work through OpenRouter.
+- Persistence: SQLite under `/data/maxx`; Agent MAXX operational memory under `/runtime/maxx`.
 - Deploy path: GitHub `main` runs `Build, Push & Deploy`, pushes the image, then calls the Coolify deploy API.
 
 ## Required Backend Env
@@ -20,10 +20,10 @@ MAXX_ENV=production
 MAXX_ALLOWED_ORIGINS=https://spy-scape-mustang-maxx.vercel.app
 MAXX_BFF_SHARED_SECRET=replace-with-generated-secret
 MAXX_DATA_DIR=/data/maxx
-MAXX_HERMES_HOME=/runtime/hermes
-MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent
-MAXX_HERMES_PROVIDER=openrouter
-MAXX_HERMES_MODEL=openrouter/owl-alpha
+MAXX_RUNTIME_HOME=/runtime/maxx
+MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
+MAXX_RUNTIME_PROVIDER=openrouter
+MAXX_RUNTIME_MODEL=openrouter/owl-alpha
 MAXX_OPENROUTER_API_KEY=sk-or-v1-...
 ```
 
@@ -46,8 +46,8 @@ After Vercel env changes, redeploy production.
 Coolify/VPS must preserve:
 
 - `/data/maxx` for `/data/maxx/maxx.db`
-- `/runtime/hermes` for Hermes workspace/runtime state
-- `/opt/hermes-agent` for the Hermes vendor checkout
+- `/runtime/maxx` for Agent MAXX workspace/runtime state
+- `/opt/agent-maxx-runtime` for the private runtime driver checkout
 
 Run backups before risky deploys:
 
@@ -82,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -OperatorPassword $env:MAXX_OPERATOR_PASSWORD `
   -RequireLiveStack `
-  -RequireHermesExecutionReady
+  -RequireMaxxRuntimeExecutionReady
 ```
 
 ## Private Backend Gate

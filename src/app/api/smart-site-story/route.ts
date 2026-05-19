@@ -88,7 +88,7 @@ export async function GET() {
   }
 
   const [health, runtime, workflows, manifest, tasks] = await Promise.all([
-    readJson<{ status?: string; hermes?: string }>(`${bffUrl}/health`),
+    readJson<{ status?: string; runtime?: string }>(`${bffUrl}/health`),
     readJson<Record<string, unknown>>(`${bffUrl}/v1/runtime`),
     readJson<WorkflowPayload>(`${bffUrl}/v1/workflows`),
     readJson<ManifestPayload>(`${bffUrl}/v1/clients/maxx-demo/manifest`),

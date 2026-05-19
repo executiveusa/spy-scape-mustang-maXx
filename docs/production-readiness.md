@@ -5,7 +5,7 @@
 Agent MAXX v1 ships as a split deployment:
 
 - Vercel serves the public Next.js smart site and operator UI.
-- FastAPI, Hermes, tenant data, task files, and profile homes run on a private VPS or Coolify service.
+- FastAPI, Agent MAXX runtime, tenant data, task files, and profile homes run on a private VPS or Coolify service.
 - The BFF is not public while app-level auth is deferred. Access must be limited by firewall, private tunnel, VPN, or explicit IP allowlist.
 
 ## Required Production Environment
@@ -17,11 +17,14 @@ MAXX_ENV=production
 MAXX_ALLOWED_ORIGINS=https://your-vercel-production-domain,https://your-vercel-preview-domain
 MAXX_BFF_SHARED_SECRET=replace-with-a-generated-32-byte-secret
 MAXX_DATA_DIR=/data/maxx
-MAXX_HERMES_HOME=/runtime/hermes
-MAXX_HERMES_VENDOR_PATH=/opt/hermes-agent
-MAXX_HERMES_PROVIDER=openrouter
-MAXX_HERMES_MODEL=openrouter/owl-alpha
+MAXX_RUNTIME_HOME=/runtime/maxx
+MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
+MAXX_RUNTIME_PROVIDER=openrouter
+MAXX_RUNTIME_MODEL=openrouter/owl-alpha
 MAXX_OPENROUTER_API_KEY=...
+FIRECRAWL_API_KEY=...
+MAXX_BROWSER_WORKER_URL=
+MAXX_BROWSER_AUTONOMY_ENABLED=false
 ```
 
 Set this on Vercel:
@@ -39,13 +42,13 @@ Use `NEXT_PUBLIC_MAXX_BFF_URL` only for local development or controlled internal
 The frontend and backend have separate Coolify definitions:
 
 - `coolify.json` is the public/frontend Dockerfile app.
-- `backend/coolify.json` is the private FastAPI/Hermes BFF app.
+- `backend/coolify.json` is the private FastAPI/Agent MAXX BFF app.
 
 For the backend app, mount persistent volumes at:
 
 - `/data/maxx` for SQLite tenant/task/workflow state at `/data/maxx/maxx.db`.
-- `/runtime/hermes` for Hermes profile homes and workspace state.
-- `/opt/hermes-agent` for the Hermes vendor checkout.
+- `/runtime/maxx` for Agent MAXX profile homes and workspace state.
+- `/opt/agent-maxx-runtime` for the private Agent MAXX runtime driver checkout.
 
 After the private backend has a reachable tunnel/private origin, set `MAXX_BFF_URL` in Vercel to that origin and redeploy the preview.
 
@@ -66,6 +69,16 @@ Until auth is implemented, production is acceptable only if the FastAPI service 
 - Tenant mutation endpoints must not be reachable directly from the public internet.
 - `MAXX_BFF_SHARED_SECRET` must be set on both the backend and Vercel while port `8010` is reachable.
 - `MAXX_ALLOW_PUBLIC_BFF=true` is not allowed for real client data.
+
+## Lead Acquisition Policy
+
+Lead Acquisition is production-safe only when it behaves like a controlled lead operations employee:
+
+- Public web discovery runs through the private backend source driver and requires `FIRECRAWL_API_KEY`.
+- Browser automation runs only in a private worker and remains disabled by default with `MAXX_BROWSER_AUTONOMY_ENABLED=false`.
+- Authorized contact imports must come from owner-provided exports, approved search URLs, or explicitly approved sessions.
+- Every prospect must retain source evidence, score rationale, opt-out/DNC fields, and operator review before outreach.
+- Qualified prospects should be promoted into Lead Desk instead of launching direct outreach from the acquisition lane.
 
 ### Backend Exposure Choices
 
@@ -116,7 +129,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -FrontendUrl "https://your-vercel-preview-url" `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -RequireLiveStack `
-  -RequireHermesExecutionReady
+  -RequireMaxxRuntimeExecutionReady
 ```
 
 The strict command must pass before claiming model-backed Lead Desk execution.
@@ -132,8 +145,9 @@ The strict command must pass before claiming model-backed Lead Desk execution.
 
 - `npm run verify:production` passes.
 - Strict verification passes against the private backend and Vercel preview.
-- `/v1/hermes/health` reports `execution_ready: true`.
+- `/v1/maxx/runtime/health` reports `execution_ready: true`.
 - `/api/runtime`, `/api/tenants`, and `/api/lead-desk` work through Next API routes.
+- `/api/lead-acquisition` is protected and can create a safe canary job that promotes a reviewed prospect into Lead Desk.
 - FastAPI is not directly reachable from an untrusted public network.
 - Unauthorized `/v1/*` requests return `401` when the shared secret is configured.
 - Persistent backend volumes are configured and backed up.

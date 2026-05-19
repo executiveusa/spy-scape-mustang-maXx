@@ -9,6 +9,20 @@ from pydantic import BaseModel, Field
 SystemStatus = Literal["online", "warning", "offline"]
 LeadQualificationTier = Literal["hot", "warm", "cold"]
 LeadTaskStatus = Literal["triaged", "queued", "attention", "follow-up", "completed", "blocked"]
+LeadAcquisitionStatus = Literal[
+    "discovered",
+    "enriched",
+    "qualified",
+    "needs-review",
+    "rejected",
+    "promoted",
+]
+LeadAcquisitionSource = Literal[
+    "manual",
+    "web-research",
+    "browser-worker",
+    "authorized-contact-import",
+]
 
 
 class ClientTheme(BaseModel):
@@ -65,7 +79,7 @@ class SmartSiteManifest(BaseModel):
     operator_notes: list[str]
 
 
-class HermesProfileBinding(BaseModel):
+class MaxxRuntimeProfileBinding(BaseModel):
     profile_name: str
     profile_home: str
     workspace_path: str
@@ -79,7 +93,7 @@ class ClientRecord(BaseModel):
     slug: str
     status: str
     manifest: SmartSiteManifest
-    hermes: HermesProfileBinding
+    hermes: MaxxRuntimeProfileBinding
     created_at: str
     updated_at: str
 
@@ -132,7 +146,7 @@ class LeadQualification(BaseModel):
     next_action: str
 
 
-class HermesDispatchResult(BaseModel):
+class MaxxRuntimeDispatchResult(BaseModel):
     status: str
     provider: str
     model: str
@@ -168,13 +182,127 @@ class LeadDeskTask(BaseModel):
     routing_target: str
     hermes_profile: str
     workspace_files: list[str]
-    hermes_dispatch: HermesDispatchResult
+    hermes_dispatch: MaxxRuntimeDispatchResult
     heartbeat_summary: HeartbeatSummary
 
 
 class LeadDeskStatusUpdate(BaseModel):
     status: LeadTaskStatus
     note: str | None = None
+
+
+class ProspectInput(BaseModel):
+    name: str | None = None
+    title: str | None = None
+    company: str = Field(min_length=1)
+    email: str | None = None
+    email_status: str | None = None
+    phone: str | None = None
+    linkedin_url: str | None = None
+    location: str | None = None
+    seniority: str | None = None
+    department: str | None = None
+    organization_domain: str | None = None
+    notes: str | None = None
+    source_url: str | None = None
+
+
+class ProspectEvidence(BaseModel):
+    evidence_id: str
+    source: LeadAcquisitionSource
+    label: str
+    url: str | None = None
+    excerpt: str
+    captured_at: str
+
+
+class AcquisitionPolicy(BaseModel):
+    client_id: str
+    allowed_domains: list[str] = Field(default_factory=list)
+    allowed_sources: list[LeadAcquisitionSource] = Field(
+        default_factory=lambda: ["manual", "web-research", "authorized-contact-import"]
+    )
+    max_daily_records: int = Field(default=25, ge=1, le=500)
+    browser_autonomy_enabled: bool = False
+    outreach_requires_operator_approval: bool = True
+    suppression_terms: list[str] = Field(default_factory=lambda: ["do not contact", "unsubscribe"])
+
+
+class SourceCredentialStatus(BaseModel):
+    source: LeadAcquisitionSource
+    label: str
+    status: SystemStatus
+    configured: bool
+    enabled: bool
+    detail: str
+
+
+class ProspectRecord(BaseModel):
+    prospect_id: str
+    client_id: str
+    job_id: str
+    status: LeadAcquisitionStatus
+    source: LeadAcquisitionSource
+    name: str | None = None
+    title: str | None = None
+    company: str
+    email: str | None = None
+    email_status: str | None = None
+    phone: str | None = None
+    linkedin_url: str | None = None
+    location: str | None = None
+    seniority: str | None = None
+    department: str | None = None
+    organization_domain: str | None = None
+    score: int
+    confidence: str
+    reasons: list[str]
+    evidence: list[ProspectEvidence]
+    opt_out: bool = False
+    do_not_contact: bool = False
+    promoted_task_id: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class LeadAcquisitionJob(BaseModel):
+    job_id: str
+    client_id: str
+    source: LeadAcquisitionSource
+    status: Literal["queued", "running", "completed", "degraded", "blocked"]
+    query: str
+    target_url: str | None = None
+    requested_records: int
+    discovered_count: int
+    qualified_count: int
+    rejected_count: int
+    events: list[str]
+    created_at: str
+    updated_at: str
+
+
+class LeadAcquisitionJobCreateRequest(BaseModel):
+    client_id: str = Field(default="maxx-demo")
+    source: LeadAcquisitionSource = Field(default="manual")
+    query: str = Field(default="Find owner-authorized prospects for Lead Desk review.")
+    target_url: str | None = None
+    prospects: list[ProspectInput] = Field(default_factory=list)
+    max_records: int = Field(default=5, ge=1, le=25)
+
+
+class ProspectStatusUpdate(BaseModel):
+    status: Literal["needs-review", "rejected"]
+    note: str | None = None
+
+
+class ProspectPromotionRequest(BaseModel):
+    note: str | None = None
+    preferred_channel: str = Field(default="email")
+
+
+class PromotionResult(BaseModel):
+    prospect: ProspectRecord
+    lead_desk_task: LeadDeskTask
 
 
 class RuntimeNote(BaseModel):
@@ -197,7 +325,7 @@ class RuntimeRoute(BaseModel):
     status: Literal["live", "planned", "offline"]
 
 
-class HermesRuntimeHealth(BaseModel):
+class MaxxRuntimeHealth(BaseModel):
     available: bool
     status: str
     mode: str
@@ -209,6 +337,11 @@ class HermesRuntimeHealth(BaseModel):
     execution_ready: bool
     profiles_total: int
     notes: list[str]
+
+
+HermesProfileBinding = MaxxRuntimeProfileBinding
+HermesDispatchResult = MaxxRuntimeDispatchResult
+HermesRuntimeHealth = MaxxRuntimeHealth
 
 
 def utc_now() -> str:

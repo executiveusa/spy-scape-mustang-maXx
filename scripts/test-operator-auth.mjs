@@ -21,6 +21,8 @@ assert.doesNotMatch(auth, /\b(?:btoa|atob)\b/, 'operator auth must not depend on
 const middleware = readRequired('src/middleware.ts')
 assert.match(middleware, /PROTECTED_PAGE_PREFIXES/, 'middleware must protect operator pages')
 assert.match(middleware, /PROTECTED_API_PREFIXES/, 'middleware must protect sensitive API routes')
+assert.match(middleware, /\/lead-acquisition/, 'middleware must protect Lead Acquisition page')
+assert.match(middleware, /\/api\/lead-acquisition/, 'middleware must protect Lead Acquisition API')
 assert.match(middleware, /NextResponse\.redirect/, 'unauthenticated pages must redirect to login')
 assert.match(middleware, /status:\s*401/, 'unauthenticated API requests must return 401')
 

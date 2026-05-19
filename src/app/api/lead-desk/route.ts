@@ -36,7 +36,7 @@ export async function GET() {
         headers: maxxBffHeaders(),
         signal: AbortSignal.timeout(2000),
       }),
-      fetch(`${bffUrl}/v1/providers`, {
+      fetch(`${bffUrl}/v1/maxx/runtime/providers`, {
         cache: 'no-store',
         headers: maxxBffHeaders(),
         signal: AbortSignal.timeout(2000),
