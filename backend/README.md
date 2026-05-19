@@ -74,9 +74,11 @@ MAXX_BROWSER_ALLOWED_DOMAINS=example.com,iana.org
 MAXX_BROWSER_AUTONOMY_ENABLED=false
 ```
 
-Use `backend/coolify.json` when creating the private backend app in Coolify. The root `coolify.json` is for the public frontend and should not be reused for the BFF.
+Use `backend/coolify.json` when creating the private backend app in Coolify. Use `backend/browser-worker.coolify.json` for the private browser worker. The root `coolify.json` is for the public frontend and should not be reused for private services.
 
 The root `docker-compose.yml` includes `agent-maxx-bff` with persistent volumes for tenant data and Agent MAXX runtime state. The service binds to `127.0.0.1:${BFF_PORT:-8010}:8010` by default so it is private to the host unless deliberately exposed through a tunnel, proxy, or firewall rule.
+
+The same compose file includes `agent-maxx-browser-worker`, bound to `127.0.0.1:${BROWSER_WORKER_PORT:-8020}:8020`. Set `MAXX_BROWSER_WORKER_SECRET` on both the BFF and browser worker, and keep `MAXX_BROWSER_AUTONOMY_ENABLED=false` until a tenant is trusted and allowlisted.
 
 ## Run locally
 

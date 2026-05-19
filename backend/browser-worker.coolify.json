@@ -1,0 +1,41 @@
+{
+  "$schema": "https://cdn.coollabs.io/coolify/schema.json",
+  "name": "agent-maxx-browser-worker",
+  "version": "0.1.0",
+  "description": "Private Agent MAXX browser worker for allowlisted Lead Acquisition jobs",
+  "type": "dockerfile",
+  "dockerfile": "Dockerfile",
+  "build": {
+    "baseDirectory": "/backend"
+  },
+  "settings": {
+    "isAutoDeployEnabled": false,
+    "branch": "main"
+  },
+  "environment": [
+    {
+      "key": "MAXX_BROWSER_WORKER_SECRET",
+      "value": "replace-with-shared-secret"
+    },
+    {
+      "key": "MAXX_BROWSER_AUTONOMY_ENABLED",
+      "value": "false"
+    },
+    {
+      "key": "MAXX_BROWSER_ALLOWED_DOMAINS",
+      "value": "example.com,iana.org"
+    }
+  ],
+  "ports": {
+    "exposePort": 8020
+  },
+  "startCommand": "uvicorn maxx_browser_worker.main:app --host 0.0.0.0 --port 8020",
+  "healthCheck": {
+    "enabled": true,
+    "path": "/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3,
+    "startPeriod": 20
+  }
+}
