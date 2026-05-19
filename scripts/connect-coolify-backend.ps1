@@ -16,7 +16,7 @@ function Read-SecretFile {
     throw "Secret file not found: $Path"
   }
 
-  $values = @{}
+  $values = New-Object System.Collections.Generic.List[object]
   $raw = Get-Content -Raw -LiteralPath $Path
   foreach ($line in ($raw -split "`r?`n")) {
     $trim = $line.Trim()
@@ -24,9 +24,95 @@ function Read-SecretFile {
       continue
     }
     $parts = $trim -split '=', 2
-    $values[$parts[0].Trim()] = $parts[1].Trim()
+    $values.Add([pscustomobject]@{
+      Key = $parts[0].Trim()
+      Value = $parts[1].Trim()
+    })
   }
   return $values
+}
+
+function Get-SecretValue {
+  param(
+    [object[]]$Secrets,
+    [string]$Key
+  )
+
+  $matches = @($Secrets | Where-Object { $_.Key -eq $Key } | Select-Object -ExpandProperty Value)
+  if ($matches.Count -eq 0) {
+    return $null
+  }
+  return $matches[-1]
+}
+
+function Get-SecretValues {
+  param(
+    [object[]]$Secrets,
+    [string]$Pattern
+  )
+
+  $seen = @{}
+  $values = New-Object System.Collections.Generic.List[string]
+  foreach ($entry in $Secrets) {
+    if ($entry.Key -match $Pattern -and $entry.Value -and -not $seen.ContainsKey($entry.Value)) {
+      $seen[$entry.Value] = $true
+      $values.Add($entry.Value)
+    }
+  }
+  return @($values)
+}
+
+function Resolve-CoolifyConnection {
+  param(
+    [string]$RequestedUrl,
+    [object[]]$Secrets
+  )
+
+  $urlCandidates = New-Object System.Collections.Generic.List[string]
+  foreach ($candidate in @($RequestedUrl, (Get-SecretValue -Secrets $Secrets -Key 'COOLIFY_URL'), 'https://app.coolify.io')) {
+    if (-not $candidate) {
+      continue
+    }
+    if ($candidate -match 'your-coolify|example\.com|localhost') {
+      continue
+    }
+    $normalized = $candidate.TrimEnd('/')
+    if (-not $urlCandidates.Contains($normalized)) {
+      $urlCandidates.Add($normalized)
+    }
+  }
+
+  $tokenCandidates = New-Object System.Collections.Generic.List[string]
+  foreach ($candidate in @($env:COOLIFY_API_TOKEN)) {
+    if ($candidate -and -not $tokenCandidates.Contains($candidate)) {
+      $tokenCandidates.Add($candidate)
+    }
+  }
+  foreach ($candidate in (Get-SecretValues -Secrets $Secrets -Pattern '^COOLIFY.*TOKEN$')) {
+    if ($candidate -and -not $tokenCandidates.Contains($candidate)) {
+      $tokenCandidates.Add($candidate)
+    }
+  }
+
+  if ($urlCandidates.Count -eq 0) {
+    throw "COOLIFY_URL is required. Add a real URL or pass -CoolifyUrl https://app.coolify.io."
+  }
+  if ($tokenCandidates.Count -eq 0) {
+    throw "COOLIFY_API_TOKEN is required in the secret file or process environment."
+  }
+
+  foreach ($url in $urlCandidates) {
+    foreach ($token in $tokenCandidates) {
+      try {
+        Invoke-RestMethod -Method GET -Uri "$url/api/v1/version" -Headers @{ Authorization = "Bearer $token"; Accept = 'application/json' } -TimeoutSec 20 | Out-Null
+        return [pscustomobject]@{ Url = $url; Token = $token }
+      } catch {
+        continue
+      }
+    }
+  }
+
+  throw "Could not authenticate to Coolify with the available URL/token candidates."
 }
 
 function Invoke-Coolify {
@@ -53,30 +139,23 @@ function Invoke-Coolify {
 
 $secrets = Read-SecretFile -Path $SecretFile
 
-if (-not $CoolifyUrl -and $secrets.ContainsKey('COOLIFY_URL')) {
-  $CoolifyUrl = $secrets['COOLIFY_URL']
+if (-not $env:MAXX_OPENROUTER_API_KEY) {
+  $openRouterKey = Get-SecretValue -Secrets $secrets -Key 'MAXX_OPENROUTER_API_KEY'
+  if ($openRouterKey) {
+    $env:MAXX_OPENROUTER_API_KEY = $openRouterKey
+  }
 }
-if (-not $script:CoolifyToken -and $secrets.ContainsKey('COOLIFY_API_TOKEN')) {
-  $script:CoolifyToken = $secrets['COOLIFY_API_TOKEN']
+if (-not $env:MAXX_BFF_SHARED_SECRET) {
+  $bffSecret = Get-SecretValue -Secrets $secrets -Key 'MAXX_BFF_SHARED_SECRET'
+  if ($bffSecret) {
+    $env:MAXX_BFF_SHARED_SECRET = $bffSecret
+  }
 }
-if (-not $env:MAXX_OPENROUTER_API_KEY -and $secrets.ContainsKey('MAXX_OPENROUTER_API_KEY')) {
-  $env:MAXX_OPENROUTER_API_KEY = $secrets['MAXX_OPENROUTER_API_KEY']
-}
-if (-not $env:MAXX_BFF_SHARED_SECRET -and $secrets.ContainsKey('MAXX_BFF_SHARED_SECRET')) {
-  $env:MAXX_BFF_SHARED_SECRET = $secrets['MAXX_BFF_SHARED_SECRET']
-}
-
-if (-not $CoolifyUrl) {
-  throw "COOLIFY_URL is required. Add COOLIFY_URL=https://your-coolify-host to the secret file or pass -CoolifyUrl."
-}
-if (-not $script:CoolifyToken) {
-  throw "COOLIFY_API_TOKEN is required in the secret file or process environment."
-}
-
-$script:CoolifyBase = $CoolifyUrl.TrimEnd('/')
 
 Write-Host "Checking Coolify API..."
-$version = Invoke-Coolify -Method GET -Path '/api/v1/version'
+$connection = Resolve-CoolifyConnection -RequestedUrl $CoolifyUrl -Secrets $secrets
+$script:CoolifyBase = $connection.Url
+$script:CoolifyToken = $connection.Token
 Write-Host "Coolify reachable. Version response received."
 
 Write-Host ""
