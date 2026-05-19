@@ -7,6 +7,7 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import maxx_runtime
+from .ag_ui import ag_ui_event_feed
 from .auth import require_bff_secret, shared_secret_configured
 from .settings import allowed_origins, production_config_warnings
 from .control_plane import (
@@ -166,6 +167,14 @@ def maxx_browser_health() -> dict[str, object]:
 @app.get("/v1/maxx/web-research/health", dependencies=[Protected])
 def maxx_web_research_health() -> dict[str, object]:
     return web_research_health().model_dump()
+
+
+@app.get("/v1/maxx/ag-ui/events", dependencies=[Protected])
+def maxx_ag_ui_events(
+    client_id: str = Query(default="maxx-demo"),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict[str, object]:
+    return ag_ui_event_feed(client_id=client_id, limit=limit)
 
 
 @app.get("/v1/hermes/health", dependencies=[Protected])
