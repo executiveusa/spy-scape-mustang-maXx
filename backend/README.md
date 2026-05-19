@@ -19,6 +19,7 @@ The public shell, deploy console, asset pipeline, and command deck now have enou
 - private vendor driver adapter kept behind the MAXX boundary
 - `maxx_bff/storage.py` - SQLite-backed tenant/task/workflow persistence with JSON migration
 - `maxx_bff/settings.py` - environment, CORS, and production warning policy
+- `maxx_browser_worker/main.py` - private browser-worker scaffold for allowlisted acquisition jobs
 - `tests/test_maxx_bff.py` - backend integration tests
 
 ## Live control-plane endpoints
@@ -68,6 +69,8 @@ MAXX_RUNTIME_MODEL=openrouter/owl-alpha
 MAXX_OPENROUTER_API_KEY=...
 FIRECRAWL_API_KEY=...
 MAXX_BROWSER_WORKER_URL=
+MAXX_BROWSER_WORKER_SECRET=...
+MAXX_BROWSER_ALLOWED_DOMAINS=example.com,iana.org
 MAXX_BROWSER_AUTONOMY_ENABLED=false
 ```
 
@@ -109,3 +112,17 @@ That brings up both:
 - final outreach approval, suppression-list, and compliance runbooks
 
 This backend supports the v1 MAXX capability: multi-tenant Lead Desk operations backed by Agent MAXX profile homes on one server. Lead Acquisition is a canary workflow that discovers or imports owner-approved prospects, scores and dedupes them, retains evidence, and promotes reviewed prospects into Lead Desk tasks. It can be used for a controlled production demo only when the BFF is private or shared-secret protected, persistent volumes are configured, and `/v1/maxx/runtime/health.execution_ready` is true.
+
+## Private browser worker
+
+The browser worker is a separate private FastAPI app. It is intentionally not exposed through Vercel.
+
+```powershell
+cd C:\Users\execu\Documents\vite-mustangmaxx\backend
+$env:MAXX_BROWSER_WORKER_SECRET="replace-with-shared-secret"
+$env:MAXX_BROWSER_AUTONOMY_ENABLED="false"
+$env:MAXX_BROWSER_ALLOWED_DOMAINS="example.com,iana.org"
+uvicorn maxx_browser_worker.main:app --host 127.0.0.1 --port 8020
+```
+
+Enable real browser automation only on the VPS after Chrome/browser harness dependencies are installed, target domains are allowlisted, and the tenant policy explicitly allows browser-worker acquisition jobs.
