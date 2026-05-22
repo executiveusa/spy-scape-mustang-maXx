@@ -26,6 +26,9 @@ assert.match(exposure, /private-required/, 'network exposure checker must suppor
 assert.match(exposure, /controlled-demo/, 'network exposure checker must support a controlled-demo gate')
 assert.match(exposure, /\/v1\/maxx\/runtime\/health/, 'network exposure checker must verify sensitive runtime health protection')
 assert.match(exposure, /MAXX_BFF_SHARED_SECRET/, 'network exposure checker must support the BFF shared secret')
+assert.match(exposure, /DirectBackendUrl/, 'network exposure checker must prove direct BFF port closure for private origin mode')
+assert.match(exposure, /DirectBrowserWorkerUrl/, 'network exposure checker must prove direct browser-worker port closure')
+assert.match(exposure, /AllowHttpNamedOriginForBootstrap/, 'network exposure checker must make temporary HTTP bootstrap explicit')
 
 const backup = readRequired('scripts/backup-vps-state.ps1')
 assert.match(backup, /\/data\/maxx/, 'backup script must include MAXX data volume')
@@ -45,6 +48,10 @@ assert.match(workerDockerfile, /maxx_browser_worker\.main:app/, 'browser worker 
 
 const workerManifest = readRequired('backend/browser-worker.coolify.json')
 assert.match(workerManifest, /Dockerfile\.browser-worker/, 'browser worker Coolify manifest must use the dedicated worker Dockerfile')
+
+assert.match(readRequired('ops/private-origin/nginx-agent-maxx-private-origin.conf'), /proxy_pass http:\/\/127\.0\.0\.1:8010/, 'private-origin Nginx template must proxy only to loopback BFF')
+assert.match(readRequired('scripts/install-vps-private-origin.ps1'), /sslip\.io/, 'private-origin installer must provide a no-DNS bootstrap hostname')
+assert.match(readRequired('scripts/install-vps-private-origin.ps1'), /ufw deny 8010\/tcp/, 'private-origin installer must close direct BFF port when requested')
 
 const browserWorkerConnect = readRequired('scripts/connect-coolify-browser-worker.ps1')
 assert.match(browserWorkerConnect, /MAXX_BROWSER_WORKER_SECRET/, 'browser worker connector must update worker secret')

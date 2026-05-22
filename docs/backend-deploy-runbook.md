@@ -148,3 +148,48 @@ Shared-secret protection is acceptable for controlled demos only. Before real cl
 3. Add Cloudflare Tunnel after a real Cloudflare domain is active.
 
 Do not call the system real-client production-ready while `8010` is public.
+
+## Preferred Path: Private Origin Without Cloudflare
+
+Until a real Cloudflare domain is active, use a VPS-owned named origin backed by Nginx and `sslip.io`:
+
+1. Keep the BFF bound to loopback/private network on the VPS.
+2. Install an Nginx virtual host on the VPS.
+3. Expose only `80` and, when TLS is available, `443` publicly.
+4. Proxy `http://maxx-api.31.220.58.212.sslip.io` to `127.0.0.1:8010`.
+5. Deny direct public access to `8010` and `8020`.
+6. Set Vercel `MAXX_BFF_URL=http://maxx-api.31.220.58.212.sslip.io`.
+7. Redeploy Vercel.
+8. Run the private-required exposure gate.
+
+Installer:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-vps-private-origin.ps1 `
+  -SshTarget "root@31.220.58.212" `
+  -VpsIp "31.220.58.212" `
+  -OriginHost "maxx-api.31.220.58.212.sslip.io"
+```
+
+Add `-AttemptTls` to ask Certbot to promote the Nginx origin to HTTPS. If `sslip.io` is globally rate-limited by Let's Encrypt, keep HTTP temporarily and replace it with a real domain later.
+
+After confirming `http://maxx-api.31.220.58.212.sslip.io/health` is healthy and Vercel is using the named origin, apply firewall closure:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-vps-private-origin.ps1 `
+  -SshTarget "root@31.220.58.212" `
+  -VpsIp "31.220.58.212" `
+  -OriginHost "maxx-api.31.220.58.212.sslip.io" `
+  -ApplyFirewall
+```
+
+Private-required verification:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 `
+  -BackendUrl "http://maxx-api.31.220.58.212.sslip.io" `
+  -DirectBackendUrl "http://31.220.58.212:8010" `
+  -DirectBrowserWorkerUrl "http://31.220.58.212:8020" `
+  -ExpectedMode private-required `
+  -AllowHttpNamedOriginForBootstrap
+```

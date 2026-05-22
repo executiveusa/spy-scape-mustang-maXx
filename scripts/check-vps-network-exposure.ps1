@@ -1,10 +1,13 @@
 param(
   [string]$BackendUrl = $env:MAXX_VERIFY_BACKEND_URL,
+  [string]$DirectBackendUrl = $env:MAXX_VERIFY_DIRECT_BACKEND_URL,
   [string]$BrowserWorkerUrl = $env:MAXX_VERIFY_BROWSER_WORKER_URL,
+  [string]$DirectBrowserWorkerUrl = $env:MAXX_VERIFY_DIRECT_BROWSER_WORKER_URL,
   [ValidateSet('controlled-demo', 'private-required')]
   [string]$ExpectedMode = 'controlled-demo',
   [string]$SecretFile,
-  [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET
+  [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET,
+  [switch]$AllowHttpNamedOriginForBootstrap
 )
 
 $ErrorActionPreference = 'Stop'
@@ -84,6 +87,22 @@ function Convert-BodyToJson {
   }
 }
 
+function Test-DirectPublicOrigin {
+  param([string]$Url)
+  try {
+    $uri = [Uri]$Url
+    if ($uri.Host -match '^\d{1,3}(\.\d{1,3}){3}$') {
+      return $true
+    }
+    if ($uri.Scheme -eq 'http' -and -not $AllowHttpNamedOriginForBootstrap) {
+      return $true
+    }
+    return $false
+  } catch {
+    return $true
+  }
+}
+
 Import-EnvFile -Path $SecretFile
 
 if (-not $BffSharedSecret) {
@@ -102,6 +121,9 @@ if ($BffSharedSecret) {
 
 Write-Host "Agent MAXX VPS network exposure check"
 Write-Host "Expected mode: $ExpectedMode"
+if ($AllowHttpNamedOriginForBootstrap) {
+  Write-Warning "HTTP named origin bootstrap is allowed for this run. Replace with HTTPS before full client production."
+}
 Write-Host "Backend URL: $BackendUrl"
 
 $health = Invoke-JsonProbe -Url "$BackendUrl/health"
@@ -112,8 +134,8 @@ if ($health.reachable) {
     Write-Host "Backend service: $($payload.service); status: $($payload.status); runtime: $($payload.runtime)"
   }
 
-  if ($ExpectedMode -eq 'private-required') {
-    throw "NO-GO: backend is publicly reachable at $BackendUrl. Real-client mode requires firewall, private proxy, VPN, or tunnel first."
+  if ($ExpectedMode -eq 'private-required' -and (Test-DirectPublicOrigin -Url $BackendUrl)) {
+    throw "NO-GO: backend origin is still direct or plain HTTP at $BackendUrl. Real-client mode requires a named HTTPS proxy/tunnel origin and closed direct ports."
   }
 
   $sensitiveProbe = Invoke-JsonProbe -Url "$BackendUrl/v1/maxx/runtime/health"
@@ -137,6 +159,21 @@ if ($health.reachable) {
   Write-Host "Backend /health is not publicly reachable."
   if ($ExpectedMode -eq 'controlled-demo') {
     Write-Warning "Controlled demo mode expected a reachable backend; this may mean the service is private or down."
+  } elseif ($ExpectedMode -eq 'private-required') {
+    throw "NO-GO: private-required mode needs a reachable named HTTPS backend origin for Vercel server routes."
+  }
+}
+
+if ($ExpectedMode -eq 'private-required') {
+  if (-not $DirectBackendUrl) {
+    Write-Warning "MAXX_VERIFY_DIRECT_BACKEND_URL / -DirectBackendUrl was not supplied; cannot prove direct BFF port closure."
+  } else {
+    $DirectBackendUrl = $DirectBackendUrl.TrimEnd('/')
+    $directBackendProbe = Invoke-JsonProbe -Url "$DirectBackendUrl/health"
+    if ($directBackendProbe.reachable) {
+      throw "NO-GO: direct BFF port is still reachable at $DirectBackendUrl. Close port 8010 before real-client launch."
+    }
+    Write-Host "Direct BFF port is not publicly reachable: $DirectBackendUrl"
   }
 }
 
@@ -167,6 +204,15 @@ if ($BrowserWorkerUrl) {
   } else {
     Write-Host "Browser worker /health is not publicly reachable."
   }
+}
+
+if ($ExpectedMode -eq 'private-required' -and $DirectBrowserWorkerUrl) {
+  $DirectBrowserWorkerUrl = $DirectBrowserWorkerUrl.TrimEnd('/')
+  $directWorkerProbe = Invoke-JsonProbe -Url "$DirectBrowserWorkerUrl/health"
+  if ($directWorkerProbe.reachable) {
+    throw "NO-GO: direct browser-worker port is still reachable at $DirectBrowserWorkerUrl. Close port 8020 before enabling real-client autonomous browser work."
+  }
+  Write-Host "Direct browser-worker port is not publicly reachable: $DirectBrowserWorkerUrl"
 }
 
 if ($ExpectedMode -eq 'controlled-demo') {
