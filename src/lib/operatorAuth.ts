@@ -135,6 +135,18 @@ export async function operatorSessionFromRequest(request: NextRequest) {
   return verifyOperatorSession(request.cookies.get(OPERATOR_SESSION_COOKIE)?.value)
 }
 
+export async function operatorTenantIdFromRequest(request: NextRequest) {
+  const session = await operatorSessionFromRequest(request)
+  return session?.tenant_id || 'maxx-demo'
+}
+
+export function canAccessTenant(operatorTenantId: string, requestedTenantId?: string | null) {
+  if (!requestedTenantId) {
+    return true
+  }
+  return operatorTenantId === 'all' || operatorTenantId === requestedTenantId
+}
+
 export function verifyOperatorPassword(password: string) {
   const expected = process.env.MAXX_OPERATOR_PASSWORD?.trim()
   return Boolean(expected && password === expected)

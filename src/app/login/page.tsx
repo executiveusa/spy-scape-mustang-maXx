@@ -12,6 +12,7 @@ function OperatorLoginForm() {
   const nextPath = searchParams.get('next') || '/dashboard'
   const isUnconfigured = searchParams.get('auth') === 'unconfigured'
   const [password, setPassword] = useState('')
+  const [tenantId, setTenantId] = useState('maxx-demo')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(
     isUnconfigured ? 'Operator auth is not configured yet. Set MAXX_OPERATOR_PASSWORD and MAXX_OPERATOR_SESSION_SECRET.' : null,
@@ -30,7 +31,7 @@ function OperatorLoginForm() {
         },
         body: JSON.stringify({
           password,
-          tenant_id: 'maxx-demo',
+          tenant_id: tenantId.trim() || 'maxx-demo',
         }),
       })
       const payload = (await response.json()) as { detail?: string }
@@ -59,6 +60,21 @@ function OperatorLoginForm() {
           required
           className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-maxx-cyan/50"
         />
+      </label>
+
+      <label className="block">
+        <span className="mb-2 block font-mono text-xs uppercase tracking-[0.22em] text-gray-500">
+          Tenant scope
+        </span>
+        <input
+          value={tenantId}
+          onChange={(event) => setTenantId(event.target.value)}
+          placeholder="maxx-demo"
+          className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-maxx-cyan/50"
+        />
+        <span className="mt-2 block text-xs leading-5 text-gray-600">
+          Use a client ID for tenant-scoped work, or `all` for platform-wide operator setup.
+        </span>
       </label>
 
       {error ? (
