@@ -17,6 +17,7 @@ import {
   Radio,
   RefreshCw,
   Radar,
+  Server,
   Shield,
   Target,
   UserRound,
@@ -77,6 +78,14 @@ type RuntimePayload = {
     transport?: string
     events?: AgUiEvent[]
   } | null
+  operator_console?: {
+    backend_origin?: string
+    network_posture?: 'controlled-demo' | 'private-ready'
+    real_client_ready?: boolean
+    shared_secret_configured?: boolean
+    operator_message?: string
+    next_action?: string
+  }
 }
 
 type DashboardTab = 'overview' | 'systems' | 'events'
@@ -214,6 +223,38 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         </div>
+
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="mb-8 rounded-[30px] border border-amber-300/15 bg-[linear-gradient(135deg,rgba(251,191,36,0.11),rgba(8,14,26,0.82))] p-6"
+        >
+          <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+            <div>
+              <div className="mb-3 flex items-center gap-3">
+                <Server className="h-5 w-5 text-amber-200" />
+                <span className="font-mono text-xs uppercase tracking-[0.28em] text-amber-100/70">Backend Command Console</span>
+              </div>
+              <h2 className="text-2xl font-black uppercase tracking-[0.08em]">
+                {payload?.operator_console?.real_client_ready ? 'private launch posture' : 'controlled demo posture'}
+              </h2>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <ReadinessRow label="Network" value={payload?.operator_console?.network_posture ?? 'checking'} />
+              <ReadinessRow label="Origin" value={payload?.operator_console?.backend_origin ?? 'unknown'} />
+              <ReadinessRow label="Secret Gate" value={payload?.operator_console?.shared_secret_configured ? 'configured' : 'missing'} />
+            </div>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/72">
+              {payload?.operator_console?.operator_message ?? 'Agent MAXX is checking backend posture.'}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-cyan-100">
+              <span className="font-semibold text-white">Next action:</span> {payload?.operator_console?.next_action ?? 'Refresh runtime state.'}
+            </div>
+          </div>
+        </motion.section>
 
         <div className="mb-8 grid gap-4 md:grid-cols-4">
           <MetricCard icon={Wifi} label="Systems Online" value={`${onlineSystems}/${systems.length || 0}`} detail="Live BFF runtime systems." />
