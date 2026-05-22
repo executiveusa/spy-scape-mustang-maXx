@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { bffUnavailablePayload, maxxBffHeaders, maxxBffUrl } from '@/lib/maxxBffConfig'
+import { canAccessTenant, operatorTenantIdFromRequest } from '@/lib/operatorAuth'
 
-const clientId = 'maxx-demo'
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   let bffUrl: string
   try {
     bffUrl = maxxBffUrl()
@@ -22,6 +21,8 @@ export async function GET() {
   }
 
   try {
+    const tenantId = await operatorTenantIdFromRequest(request)
+    const clientId = tenantId === 'all' ? 'maxx-demo' : tenantId
     const [sourcesResponse, jobsResponse, prospectsResponse, manifestResponse] = await Promise.all([
       fetch(`${bffUrl}/v1/lead-acquisition/sources`, {
         cache: 'no-store',
@@ -60,6 +61,8 @@ export async function GET() {
     return NextResponse.json({
       status: 'ok',
       app: 'agent-maxx-006',
+      operator_tenant_id: tenantId,
+      client_id: clientId,
       sources: sourcesPayload.sources ?? [],
       policy_defaults: sourcesPayload.policy_defaults,
       jobs: jobsPayload.jobs ?? [],
@@ -84,6 +87,7 @@ export async function POST(request: NextRequest) {
     note?: string
     preferred_channel?: string
   } & Record<string, unknown>
+  const tenantId = await operatorTenantIdFromRequest(request)
 
   let bffUrl: string
   try {
@@ -99,6 +103,18 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      if (tenantId !== 'all') {
+        const prospectsResponse = await fetch(`${bffUrl}/v1/lead-acquisition/prospects?client_id=${encodeURIComponent(tenantId)}`, {
+          cache: 'no-store',
+          headers: maxxBffHeaders(),
+          signal: AbortSignal.timeout(5000),
+        })
+        const prospectsPayload = (await prospectsResponse.json()) as { prospects?: Array<{ prospect_id?: string }> }
+        if (!prospectsPayload.prospects?.some((prospect) => prospect.prospect_id === body.prospect_id)) {
+          return NextResponse.json({ detail: 'Operator session is not scoped to this tenant.' }, { status: 403 })
+        }
+      }
+
       const response = await fetch(`${bffUrl}/v1/lead-acquisition/prospects/${body.prospect_id}/promote`, {
         method: 'POST',
         headers: maxxBffHeaders({ 'Content-Type': 'application/json' }),
@@ -122,6 +138,18 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      if (tenantId !== 'all') {
+        const prospectsResponse = await fetch(`${bffUrl}/v1/lead-acquisition/prospects?client_id=${encodeURIComponent(tenantId)}`, {
+          cache: 'no-store',
+          headers: maxxBffHeaders(),
+          signal: AbortSignal.timeout(5000),
+        })
+        const prospectsPayload = (await prospectsResponse.json()) as { prospects?: Array<{ prospect_id?: string }> }
+        if (!prospectsPayload.prospects?.some((prospect) => prospect.prospect_id === body.prospect_id)) {
+          return NextResponse.json({ detail: 'Operator session is not scoped to this tenant.' }, { status: 403 })
+        }
+      }
+
       const response = await fetch(`${bffUrl}/v1/lead-acquisition/prospects/${body.prospect_id}`, {
         method: 'PATCH',
         headers: maxxBffHeaders({ 'Content-Type': 'application/json' }),
@@ -140,10 +168,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const clientId = String(body.client_id || (tenantId === 'all' ? 'maxx-demo' : tenantId))
+    if (!canAccessTenant(tenantId, clientId)) {
+      return NextResponse.json({ detail: 'Operator session is not scoped to this tenant.' }, { status: 403 })
+    }
+
     const response = await fetch(`${bffUrl}/v1/lead-acquisition/jobs`, {
       method: 'POST',
       headers: maxxBffHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, client_id: clientId }),
       cache: 'no-store',
       signal: AbortSignal.timeout(15000),
     })

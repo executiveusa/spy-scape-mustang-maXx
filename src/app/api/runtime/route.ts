@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 import { bffUnavailablePayload, maxxBffHeaders, maxxBffUrl } from '@/lib/maxxBffConfig'
+import { operatorTenantIdFromRequest } from '@/lib/operatorAuth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   let bffUrl: string
   try {
     bffUrl = maxxBffUrl()
@@ -21,13 +22,14 @@ export async function GET() {
 
   try {
     const headers = maxxBffHeaders()
+    const tenantId = await operatorTenantIdFromRequest(request)
     const [runtimeResponse, agUiResponse] = await Promise.all([
       fetch(`${bffUrl}/v1/runtime`, {
         cache: 'no-store',
         headers,
         signal: AbortSignal.timeout(3500),
       }),
-      fetch(`${bffUrl}/v1/maxx/ag-ui/events?client_id=maxx-demo&limit=40`, {
+      fetch(`${bffUrl}/v1/maxx/ag-ui/events?client_id=${encodeURIComponent(tenantId === 'all' ? 'maxx-demo' : tenantId)}&limit=40`, {
         cache: 'no-store',
         headers,
         signal: AbortSignal.timeout(3500),
@@ -36,7 +38,7 @@ export async function GET() {
 
     const payload = (await runtimeResponse.json()) as Record<string, unknown>
     const agUi = agUiResponse.ok ? ((await agUiResponse.json()) as Record<string, unknown>) : null
-    return NextResponse.json({ ...payload, ag_ui: agUi }, { status: runtimeResponse.status })
+    return NextResponse.json({ ...payload, operator_tenant_id: tenantId, ag_ui: agUi }, { status: runtimeResponse.status })
   } catch {
     return NextResponse.json(
       {

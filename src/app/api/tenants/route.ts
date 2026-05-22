@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { bffUnavailablePayload, maxxBffHeaders, maxxBffUrl } from '@/lib/maxxBffConfig'
+import { canAccessTenant, operatorTenantIdFromRequest } from '@/lib/operatorAuth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   let bffUrl: string
   try {
     bffUrl = maxxBffUrl()
@@ -18,14 +19,18 @@ export async function GET() {
   }
 
   try {
+    const tenantId = await operatorTenantIdFromRequest(request)
     const response = await fetch(`${bffUrl}/v1/clients`, {
       cache: 'no-store',
       headers: maxxBffHeaders(),
       signal: AbortSignal.timeout(2500),
     })
 
-    const payload = (await response.json()) as Record<string, unknown>
-    return NextResponse.json(payload, { status: response.status })
+    const payload = (await response.json()) as { clients?: Array<Record<string, unknown>> } & Record<string, unknown>
+    const clients = tenantId === 'all'
+      ? payload.clients ?? []
+      : (payload.clients ?? []).filter((client) => client.client_id === tenantId)
+    return NextResponse.json({ ...payload, operator_tenant_id: tenantId, clients }, { status: response.status })
   } catch {
     return NextResponse.json(
       {
@@ -40,6 +45,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as { action?: string; client_id?: string }
   const action = body.action ?? 'create'
+  const tenantId = await operatorTenantIdFromRequest(request)
+  const requestedClientId = body.client_id
+  if (!canAccessTenant(tenantId, requestedClientId)) {
+    return NextResponse.json({ detail: 'Operator session is not scoped to this tenant.' }, { status: 403 })
+  }
+
   let bffUrl: string
   try {
     bffUrl = maxxBffUrl()
