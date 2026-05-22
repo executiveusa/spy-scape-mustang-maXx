@@ -35,4 +35,10 @@ const login = readRequired('src/app/login/page.tsx')
 assert.match(login, /<form/, 'login page must render a real form')
 assert.match(login, /\/api\/operator-session/, 'login page must call the operator session API')
 
+const dashboard = readRequired('src/app/dashboard/page.tsx')
+assert.match(dashboard, /\/api\/runtime/, 'dashboard must load the real Agent MAXX runtime API')
+assert.match(dashboard, /ag_ui/, 'dashboard must render the AG-UI operator event bridge')
+assert.match(dashboard, /Lead Acquisition/, 'dashboard must link to the Lead Acquisition operator surface')
+assert.doesNotMatch(dashboard, /Training Modules|Comic Reader|Nanon Banana|Mock Data/, 'dashboard must not show stale mock product surfaces')
+
 console.log('operator auth contract ok')
