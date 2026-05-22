@@ -1,427 +1,419 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
 import {
-  Shield,
   Activity,
-  Target,
-  Zap,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  Database,
   Eye,
-  Clock,
-  ChevronRight,
-  BarChart3,
-  Globe,
+  Home,
+  Loader2,
   Lock,
   Radio,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
   RefreshCw,
-  Settings,
-  User,
-  Home,
-  Cpu,
-  Server,
+  Radar,
+  Shield,
+  Target,
+  UserRound,
   Wifi,
-  Database,
-} from 'lucide-react';
+  XCircle,
+} from 'lucide-react'
 
-// ─── Types ───────────────────────────────────────────────────────────
-interface SystemStatus {
-  name: string;
-  status: 'online' | 'warning' | 'offline';
-  latency?: string;
-  icon: any;
+type SystemStatus = 'online' | 'warning' | 'offline'
+
+type RuntimeSystem = {
+  name: string
+  status: SystemStatus
+  latency: string
+  detail: string
 }
 
-interface MissionLog {
-  id: string;
-  timestamp: string;
-  type: 'success' | 'warning' | 'error' | 'info';
-  message: string;
+type RuntimeNote = {
+  id: string
+  timestamp: string
+  type: 'success' | 'warning' | 'error' | 'info'
+  message: string
 }
 
-interface AgentStat {
-  label: string;
-  value: string;
-  change: string;
-  trend: 'up' | 'down' | 'neutral';
-  icon: any;
+type RuntimeRoute = {
+  path: string
+  label: string
+  status: 'live' | 'planned' | 'offline'
 }
 
-// ─── Mock Data ───────────────────────────────────────────────────────
-const systemStatuses: SystemStatus[] = [
-  { name: 'Frontend Server', status: 'online', latency: '12ms', icon: Globe },
-  { name: 'Auth Service', status: 'online', latency: '45ms', icon: Lock },
-  { name: 'AI Pipeline', status: 'warning', latency: '320ms', icon: Cpu },
-  { name: 'Image CDN', status: 'online', latency: '8ms', icon: Server },
-  { name: 'WebSocket Feed', status: 'online', latency: '22ms', icon: Wifi },
-  { name: 'Asset Database', status: 'online', latency: '15ms', icon: Database },
-];
+type AgUiEvent = {
+  type: string
+  event_id: string
+  run_id: string
+  timestamp: string
+  payload: Record<string, unknown>
+}
 
-const missionLogs: MissionLog[] = [
-  { id: '1', timestamp: '14:32:07', type: 'success', message: 'Agent protocol initialized successfully' },
-  { id: '2', timestamp: '14:31:55', type: 'info', message: 'Secure connection established via TLS 1.3' },
-  { id: '3', timestamp: '14:31:42', type: 'warning', message: 'AI pipeline response time elevated (320ms)' },
-  { id: '4', timestamp: '14:31:30', type: 'success', message: 'Character asset library synced — 47 assets' },
-  { id: '5', timestamp: '14:31:18', type: 'info', message: 'Training module data loaded' },
-  { id: '6', timestamp: '14:30:55', type: 'success', message: 'Comic engine ready — Issue #1 cached' },
-  { id: '7', timestamp: '14:30:40', type: 'error', message: 'Nanon Banana API key not configured' },
-  { id: '8', timestamp: '14:30:22', type: 'info', message: 'System boot sequence complete' },
-];
+type RuntimePayload = {
+  status?: string
+  mode?: string
+  frontend?: string
+  systems?: RuntimeSystem[]
+  logs?: RuntimeNote[]
+  routes?: RuntimeRoute[]
+  clients?: Array<{ client_id: string; status: string }>
+  workflow_packs?: Array<{ workflow_id: string; status: string }>
+  heartbeats?: Array<{ workflow_id: string; status: string; summary: string; pending_task_ids: string[] }>
+  maxx_runtime?: {
+    status?: string
+    execution_ready?: boolean
+    provider_configured?: boolean
+    profiles_total?: number
+    provider?: string
+    model?: string
+  }
+  ag_ui?: {
+    protocol?: string
+    transport?: string
+    events?: AgUiEvent[]
+  } | null
+}
 
-const agentStats: AgentStat[] = [
-  { label: 'Mission Readiness', value: '87%', change: '+3%', trend: 'up', icon: Target },
-  { label: 'Training Modules', value: '4 / 12', change: '+1', trend: 'up', icon: Zap },
-  { label: 'Assets Generated', value: '47', change: '+12', trend: 'up', icon: Activity },
-  { label: 'Active Sessions', value: '1', change: '0', trend: 'neutral', icon: Eye },
-];
+type DashboardTab = 'overview' | 'systems' | 'events'
 
-const sitePages = [
-  { name: 'Home / Landing', path: '/', status: 'live' },
-  { name: 'Login Portal', path: '/login', status: 'live' },
-  { name: 'Dashboard', path: '/dashboard', status: 'live' },
-  { name: 'About Agent', path: '/about', status: 'planned' },
-  { name: 'Training Zones', path: '/training', status: 'planned' },
-  { name: 'Comic Reader', path: '/comics', status: 'planned' },
-];
+const statusClasses: Record<string, string> = {
+  online: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/20',
+  warning: 'text-amber-300 bg-amber-400/10 border-amber-400/20',
+  offline: 'text-red-300 bg-red-400/10 border-red-400/20',
+  live: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/20',
+  planned: 'text-slate-300 bg-slate-400/10 border-slate-400/20',
+  ready: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/20',
+  degraded: 'text-amber-300 bg-amber-400/10 border-amber-400/20',
+}
 
-// ─── Component ───────────────────────────────────────────────────────
+const eventLabels: Record<string, string> = {
+  MAXX_RUNTIME_STATE: 'Runtime',
+  MAXX_TASK_STATE: 'Lead Desk',
+  MAXX_PROSPECT_STATE: 'Prospect',
+  MAXX_JOB_STATE: 'Acquisition Job',
+  MAXX_HEARTBEAT_STATE: 'Heartbeat',
+}
+
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'systems' | 'logs'>('overview');
-  const [refreshing, setRefreshing] = useState(false);
+  const [payload, setPayload] = useState<RuntimePayload | null>(null)
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview')
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
-  };
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'online': return 'text-emerald-400';
-      case 'warning': return 'text-yellow-400';
-      case 'offline': return 'text-red-400';
-      default: return 'text-gray-400';
+  const loadRuntime = async (mode: 'initial' | 'refresh' = 'initial') => {
+    if (mode === 'refresh') {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
     }
-  };
-
-  const statusDot = (status: string) => {
-    switch (status) {
-      case 'online': return 'bg-emerald-400';
-      case 'warning': return 'bg-yellow-400';
-      case 'offline': return 'bg-red-400';
-      default: return 'bg-gray-400';
+    setError(null)
+    try {
+      const response = await fetch('/api/runtime', { cache: 'no-store' })
+      const nextPayload = (await response.json()) as RuntimePayload & { detail?: string }
+      if (!response.ok) {
+        throw new Error(nextPayload.detail ?? 'Agent MAXX runtime failed to load.')
+      }
+      setPayload(nextPayload)
+    } catch (runtimeError) {
+      setError(runtimeError instanceof Error ? runtimeError.message : 'Agent MAXX runtime failed to load.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
-  };
+  }
 
-  const logIcon = (type: string) => {
-    switch (type) {
-      case 'success': return <CheckCircle className="w-4 h-4 text-emerald-400" />;
-      case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
-      case 'error': return <XCircle className="w-4 h-4 text-red-400" />;
-      default: return <Activity className="w-4 h-4 text-cyan-400" />;
-    }
-  };
+  useEffect(() => {
+    void loadRuntime()
+  }, [])
 
-  const onlineCount = systemStatuses.filter(s => s.status === 'online').length;
-  const totalCount = systemStatuses.length;
+  const systems = payload?.systems ?? []
+  const logs = payload?.logs ?? []
+  const routes = payload?.routes ?? []
+  const events = payload?.ag_ui?.events ?? []
+  const onlineSystems = systems.filter((system) => system.status === 'online').length
+  const liveRoutes = routes.filter((route) => route.status === 'live').length
+  const activeHeartbeats = payload?.heartbeats?.filter((heartbeat) => heartbeat.status !== 'clear') ?? []
+  const taskEvents = useMemo(() => events.filter((event) => event.type === 'MAXX_TASK_STATE'), [events])
+  const prospectEvents = useMemo(() => events.filter((event) => event.type === 'MAXX_PROSPECT_STATE'), [events])
 
   return (
-    <div className="min-h-screen bg-[#050810] text-white">
-      {/* ─── Top Bar ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-[#050810]/90 border-b border-white/5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2 group">
-              <Shield className="w-7 h-7 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
-              <span className="font-bold tracking-widest text-sm">MAXX 006</span>
-            </Link>
-            <span className="text-white/20">|</span>
-            <span className="text-cyan-400 font-mono text-xs tracking-wider">CONTROL DASHBOARD</span>
-          </div>
+    <main className="min-h-screen overflow-hidden bg-[#050810] text-white">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(70,213,255,0.16),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(244,211,94,0.09),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.035)_0,transparent_30%)]" />
 
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050810]/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <Shield className="h-7 w-7 text-cyan-300" />
+            <div>
+              <div className="text-sm font-black uppercase tracking-[0.28em]">Agent MAXX</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-cyan-300/70">
+                Operator Command Center
+              </div>
+            </div>
+          </Link>
           <div className="flex items-center gap-3">
             <button
-              onClick={handleRefresh}
-              aria-label="Refresh"
-              className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-              title="Refresh"
+              onClick={() => void loadRuntime('refresh')}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono uppercase tracking-[0.2em] text-white/70 transition hover:border-cyan-300/40 hover:text-cyan-200"
             >
-              <RefreshCw className={`w-4 h-4 text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
             </button>
-            <Link
-              href="/"
-              aria-label="Back to Site"
-              className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-              title="Back to Site"
-            >
-              <Home className="w-4 h-4 text-gray-400" />
-            </Link>
-            <Link
-              href="/login"
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-lg text-cyan-400 text-xs font-mono hover:bg-cyan-400/20 transition-colors"
-            >
-              <User className="w-3.5 h-3.5" />
-              AGENT
+            <Link href="/" className="rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition hover:text-white">
+              <Home className="h-4 w-4" />
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* ─── System Health Banner ──────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-transparent to-cyan-500/10 border border-emerald-500/20"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                <div className="absolute inset-0 w-3 h-3 rounded-full bg-emerald-400 animate-ping opacity-40" />
-              </div>
-              <span className="font-mono text-sm text-emerald-400">
-                SYSTEMS OPERATIONAL — {onlineCount}/{totalCount} services online
+      <section className="relative z-10 mx-auto max-w-7xl px-6 py-10">
+        <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-[32px] border border-white/10 bg-white/[0.04] p-7 shadow-2xl shadow-cyan-950/20">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <StatusBadge value={payload?.status ?? (loading ? 'loading' : 'degraded')} />
+              <span className="font-mono text-xs uppercase tracking-[0.28em] text-white/45">
+                {payload?.frontend ?? 'Runtime bridge'}
               </span>
             </div>
-            <span className="text-gray-500 text-xs font-mono">
-              <Clock className="w-3 h-3 inline mr-1" />
-              Last check: just now
-            </span>
+            <h1 className="max-w-4xl text-4xl font-black uppercase tracking-[0.08em] sm:text-6xl">
+              see what MAXX is doing, not what the demo claims
+            </h1>
+            <p className="mt-5 max-w-3xl text-base leading-8 text-white/68">
+              This command deck is now wired to the real backend. It reads the MAXX control plane,
+              AG-UI event bridge, Lead Desk queue, Lead Acquisition evidence, and heartbeat summaries.
+            </p>
+            {error && (
+              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-[32px] border border-cyan-300/15 bg-cyan-300/[0.055] p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <div className="font-mono text-xs uppercase tracking-[0.28em] text-cyan-200/70">Runtime Readiness</div>
+                <div className="mt-2 text-2xl font-black uppercase">
+                  {payload?.maxx_runtime?.execution_ready ? 'Model-backed' : 'Controlled demo'}
+                </div>
+              </div>
+              <Radio className="h-8 w-8 text-cyan-200" />
+            </div>
+            <div className="space-y-3">
+              <ReadinessRow label="Provider" value={payload?.maxx_runtime?.provider ?? 'unknown'} />
+              <ReadinessRow label="Model" value={payload?.maxx_runtime?.model ?? 'unknown'} />
+              <ReadinessRow label="Profiles" value={`${payload?.maxx_runtime?.profiles_total ?? 0}`} />
+              <ReadinessRow label="AG-UI" value={payload?.ag_ui?.protocol ? `${payload.ag_ui.protocol} / ${payload.ag_ui.transport}` : 'not loaded'} />
+            </div>
+          </motion.div>
+        </div>
+
+        <div className="mb-8 grid gap-4 md:grid-cols-4">
+          <MetricCard icon={Wifi} label="Systems Online" value={`${onlineSystems}/${systems.length || 0}`} detail="Live BFF runtime systems." />
+          <MetricCard icon={Target} label="Lead Tasks" value={`${taskEvents.length}`} detail="AG-UI task state events." />
+          <MetricCard icon={Radar} label="Prospects" value={`${prospectEvents.length}`} detail="Acquisition evidence events." />
+          <MetricCard icon={Clock3} label="Watchdogs" value={`${activeHeartbeats.length}`} detail="Active heartbeat summaries." />
+        </div>
+
+        {loading ? (
+          <div className="flex min-h-[320px] items-center justify-center rounded-[32px] border border-white/10 bg-white/[0.03]">
+            <Loader2 className="h-8 w-8 animate-spin text-cyan-300" />
           </div>
-        </motion.div>
+        ) : (
+          <>
+            <div className="mb-8 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-2">
+              {(['overview', 'systems', 'events'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`rounded-xl px-5 py-2 font-mono text-xs uppercase tracking-[0.22em] transition ${
+                    activeTab === tab ? 'bg-cyan-300 text-black' : 'text-white/55 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-        {/* ─── Tab Navigation ────────────────────────────────── */}
-        <div className="flex gap-1 mb-8 bg-white/5 p-1 rounded-xl w-fit">
-          {(['overview', 'systems', 'logs'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2 rounded-lg font-mono text-xs uppercase tracking-wider transition-all ${
-                activeTab === tab
-                  ? 'bg-cyan-400 text-black font-bold'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        <AnimatePresence mode="wait">
-          {/* ─── OVERVIEW TAB ─────────────────────────────────── */}
-          {activeTab === 'overview' && (
-            <motion.div
-              key="overview"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Agent Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {agentStats.map((stat, i) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-cyan-400/20 transition-colors group"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <stat.icon className="w-5 h-5 text-cyan-400/60 group-hover:text-cyan-400 transition-colors" />
-                      <span className={`text-xs font-mono ${
-                        stat.trend === 'up' ? 'text-emerald-400' :
-                        stat.trend === 'down' ? 'text-red-400' : 'text-gray-500'
-                      }`}>
-                        {stat.change}
-                      </span>
-                    </div>
-                    <div className="text-2xl font-bold mb-1">{stat.value}</div>
-                    <div className="text-xs text-gray-500 font-mono">{stat.label}</div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Two Column: Pages & Quick Log */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Site Pages */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-                    <h3 className="font-mono text-sm text-cyan-400 tracking-wider">SITE PAGES</h3>
-                    <span className="text-xs text-gray-500 font-mono">{sitePages.filter(p => p.status === 'live').length} live</span>
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {sitePages.map((page) => (
-                      <div key={page.path} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${page.status === 'live' ? 'bg-emerald-400' : 'bg-gray-600'}`} />
-                          <span className="text-sm">{page.name}</span>
+            {activeTab === 'overview' && (
+              <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                <Panel title="Mission Routes" icon={Database} action={`${liveRoutes}/${routes.length} live`}>
+                  <div className="space-y-3">
+                    {routes.slice(0, 8).map((route) => (
+                      <div key={route.path} className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                        <div>
+                          <div className="text-sm font-semibold text-white">{route.label}</div>
+                          <div className="font-mono text-xs text-white/40">{route.path}</div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className={`text-xs font-mono px-2 py-0.5 rounded ${
-                            page.status === 'live' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-700/30 text-gray-500'
-                          }`}>
-                            {page.status}
-                          </span>
-                          {page.status === 'live' && (
-                            <Link href={page.path} className="text-cyan-400 hover:text-cyan-300">
-                              <ChevronRight className="w-4 h-4" />
-                            </Link>
-                          )}
-                        </div>
+                        <StatusBadge value={route.status} />
                       </div>
                     ))}
                   </div>
-                </div>
+                </Panel>
 
-                {/* Quick Log */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-                    <h3 className="font-mono text-sm text-cyan-400 tracking-wider">RECENT ACTIVITY</h3>
-                    <button
-                      onClick={() => setActiveTab('logs')}
-                      className="text-xs text-gray-500 hover:text-cyan-400 font-mono transition-colors"
-                    >
-                      View All →
-                    </button>
-                  </div>
-                  <div className="divide-y divide-white/5 max-h-[320px] overflow-y-auto">
-                    {missionLogs.slice(0, 5).map((log) => (
-                      <div key={log.id} className="flex items-start gap-3 px-5 py-3">
-                        <div className="mt-0.5">{logIcon(log.type)}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-300 truncate">{log.message}</p>
-                          <p className="text-xs text-gray-600 font-mono mt-0.5">{log.timestamp}</p>
+                <Panel title="Recent Operator Signals" icon={Activity} action={`${logs.length} notes`}>
+                  <div className="space-y-3">
+                    {logs.slice(0, 8).map((log) => (
+                      <div key={log.id} className="flex gap-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <LogIcon type={log.type} />
+                        <div>
+                          <div className="text-sm leading-6 text-white/80">{log.message}</div>
+                          <div className="mt-1 font-mono text-xs text-white/35">{log.timestamp}</div>
                         </div>
                       </div>
                     ))}
+                    {logs.length === 0 && <EmptyState message="No runtime notes yet. Submit a Lead Desk inquiry to generate one." />}
                   </div>
-                </div>
+                </Panel>
               </div>
+            )}
 
-              {/* Quick Actions */}
-              <div className="mt-8">
-                <h3 className="font-mono text-sm text-gray-500 tracking-wider mb-4">QUICK ACTIONS</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {/* Navigation items — use Link */}
-                  {[
-                    { label: 'View Site', href: '/', icon: Globe },
-                    { label: 'Agent Login', href: '/login', icon: Lock },
-                  ].map((action) => (
-                    <Link
-                      key={action.label}
-                      href={action.href}
-                      className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-cyan-400/20 hover:bg-cyan-400/5 transition-all group"
-                    >
-                      <action.icon className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" />
-                      <span className="text-sm font-mono">{action.label}</span>
-                    </Link>
-                  ))}
-                  {/* Non-navigation items — use button */}
-                  <button
-                    className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-cyan-400/20 hover:bg-cyan-400/5 transition-all group text-left"
-                    disabled
-                    aria-disabled="true"
-                  >
-                    <Settings className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" />
-                    <span className="text-sm font-mono">Settings</span>
-                  </button>
-                  <button
-                    className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-cyan-400/20 hover:bg-cyan-400/5 transition-all group text-left"
-                    onClick={() => setActiveTab('systems')}
-                  >
-                    <BarChart3 className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" />
-                    <span className="text-sm font-mono">System Health</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ─── SYSTEMS TAB ──────────────────────────────────── */}
-          {activeTab === 'systems' && (
-            <motion.div
-              key="systems"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {systemStatuses.map((system, i) => (
-                  <motion.div
-                    key={system.name}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="p-5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <system.icon className="w-6 h-6 text-gray-500" />
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${statusDot(system.status)}`} />
-                        <span className={`text-xs font-mono uppercase ${statusColor(system.status)}`}>
-                          {system.status}
-                        </span>
-                      </div>
+            {activeTab === 'systems' && (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {systems.map((system) => (
+                  <div key={system.name} className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5">
+                    <div className="mb-4 flex items-center justify-between">
+                      <StatusBadge value={system.status} />
+                      <span className="font-mono text-xs text-white/45">{system.latency}</span>
                     </div>
-                    <h4 className="font-bold text-sm mb-1">{system.name}</h4>
-                    {system.latency && (
-                      <p className="text-xs text-gray-500 font-mono">Latency: {system.latency}</p>
-                    )}
-                  </motion.div>
+                    <h3 className="text-lg font-black uppercase tracking-[0.08em]">{system.name}</h3>
+                    <p className="mt-3 text-sm leading-6 text-white/62">{system.detail}</p>
+                  </div>
                 ))}
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* ─── LOGS TAB ─────────────────────────────────────── */}
-          {activeTab === 'logs' && (
-            <motion.div
-              key="logs"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden">
-                <div className="px-5 py-4 border-b border-white/5">
-                  <h3 className="font-mono text-sm text-cyan-400 tracking-wider">MISSION LOG</h3>
-                </div>
-                <div className="divide-y divide-white/5">
-                  {missionLogs.map((log, i) => (
-                    <motion.div
-                      key={log.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="flex items-start gap-4 px-5 py-4 hover:bg-white/[0.02] transition-colors"
-                    >
-                      <span className="text-xs text-gray-600 font-mono w-16 flex-shrink-0 pt-0.5">
-                        {log.timestamp}
-                      </span>
-                      <div className="mt-0.5">{logIcon(log.type)}</div>
-                      <p className="text-sm text-gray-300">{log.message}</p>
-                    </motion.div>
+            {activeTab === 'events' && (
+              <Panel title="AG-UI Event Feed" icon={Eye} action={`${events.length} events`}>
+                <div className="space-y-3">
+                  {events.map((event) => (
+                    <div key={event.event_id} className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <StatusBadge value={eventLabels[event.type] ?? event.type} />
+                          <span className="font-mono text-xs text-white/40">{event.run_id}</span>
+                        </div>
+                        <span className="font-mono text-xs text-white/35">{event.timestamp}</span>
+                      </div>
+                      <p className="text-sm leading-6 text-white/72">{eventSummary(event)}</p>
+                    </div>
                   ))}
+                  {events.length === 0 && <EmptyState message="AG-UI bridge is connected, but no events are available yet." />}
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+              </Panel>
+            )}
+          </>
+        )}
 
-      {/* ─── Footer ──────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 mt-16">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-xs text-gray-600 font-mono">MUSTANG MAXX 006 — Control Dashboard v1.0</span>
-          <span className="text-xs text-gray-600 font-mono">Next.js 14 • React 18 • TailwindCSS</span>
+        <div className="mt-8 grid gap-3 sm:grid-cols-4">
+          <ActionLink href="/lead-desk" label="Lead Desk" icon={UserRound} />
+          <ActionLink href="/lead-acquisition" label="Lead Acquisition" icon={Radar} />
+          <ActionLink href="/tenants" label="Tenants" icon={Lock} />
+          <ActionLink href="/deploy" label="Deploy Readiness" icon={ArrowRight} />
         </div>
-      </footer>
+      </section>
+    </main>
+  )
+}
+
+function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Activity; label: string; value: string; detail: string }) {
+  return (
+    <div className="rounded-[26px] border border-white/10 bg-white/[0.035] p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <Icon className="h-5 w-5 text-cyan-300" />
+        <div className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_20px_rgba(70,213,255,0.75)]" />
+      </div>
+      <div className="text-3xl font-black uppercase tracking-[0.08em]">{value}</div>
+      <div className="mt-1 font-mono text-xs uppercase tracking-[0.22em] text-white/45">{label}</div>
+      <p className="mt-3 text-sm leading-6 text-white/58">{detail}</p>
     </div>
-  );
+  )
+}
+
+function Panel({ title, icon: Icon, action, children }: { title: string; icon: typeof Activity; action: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-[30px] border border-white/10 bg-white/[0.03] p-5">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Icon className="h-4 w-4 text-cyan-300" />
+          <h2 className="font-mono text-sm uppercase tracking-[0.28em] text-cyan-200">{title}</h2>
+        </div>
+        <span className="font-mono text-xs text-white/38">{action}</span>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function StatusBadge({ value }: { value: string }) {
+  const normalized = value.toLowerCase()
+  return (
+    <span className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] ${statusClasses[normalized] ?? 'border-white/10 bg-white/5 text-white/60'}`}>
+      {value}
+    </span>
+  )
+}
+
+function ReadinessRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+      <span className="text-sm text-white/58">{label}</span>
+      <span className="max-w-[220px] truncate text-right font-mono text-xs text-white/86">{value}</span>
+    </div>
+  )
+}
+
+function LogIcon({ type }: { type: RuntimeNote['type'] }) {
+  if (type === 'success') return <CheckCircle2 className="mt-1 h-4 w-4 flex-shrink-0 text-emerald-300" />
+  if (type === 'warning') return <AlertTriangle className="mt-1 h-4 w-4 flex-shrink-0 text-amber-300" />
+  if (type === 'error') return <XCircle className="mt-1 h-4 w-4 flex-shrink-0 text-red-300" />
+  return <Activity className="mt-1 h-4 w-4 flex-shrink-0 text-cyan-300" />
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 p-5 text-sm text-white/45">
+      {message}
+    </div>
+  )
+}
+
+function ActionLink({ href, label, icon: Icon }: { href: string; label: string; icon: typeof Activity }) {
+  return (
+    <Link href={href} className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/10">
+      <span className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-white/72 group-hover:text-white">
+        <Icon className="h-4 w-4 text-cyan-300" />
+        {label}
+      </span>
+      <ArrowRight className="h-4 w-4 text-white/30 transition group-hover:translate-x-1 group-hover:text-cyan-200" />
+    </Link>
+  )
+}
+
+function eventSummary(event: AgUiEvent) {
+  const payload = event.payload
+  if (event.type === 'MAXX_TASK_STATE') {
+    return `${String(payload.task_id ?? 'Task')} is ${String(payload.status ?? 'unknown')} with next action ${String(payload.next_action ?? 'review')}.`
+  }
+  if (event.type === 'MAXX_PROSPECT_STATE') {
+    return `${String(payload.company ?? 'Prospect')} is ${String(payload.status ?? 'unknown')} at score ${String(payload.score ?? 'n/a')} (${String(payload.confidence ?? 'unknown')}).`
+  }
+  if (event.type === 'MAXX_JOB_STATE') {
+    return `${String(payload.source ?? 'Source')} job ${String(payload.job_id ?? '')} is ${String(payload.status ?? 'unknown')} with ${String(payload.discovered_count ?? 0)} discovered.`
+  }
+  if (event.type === 'MAXX_HEARTBEAT_STATE') {
+    return `${String(payload.workflow_id ?? 'Workflow')} heartbeat is ${String(payload.status ?? 'unknown')}: ${String(payload.summary ?? '')}`
+  }
+  if (event.type === 'MAXX_RUNTIME_STATE') {
+    const runtime = payload.runtime as { status?: string; execution_ready?: boolean } | undefined
+    return `Agent MAXX runtime is ${runtime?.status ?? 'unknown'}; execution ready is ${runtime?.execution_ready ? 'true' : 'false'}.`
+  }
+  return event.type
 }

@@ -20,14 +20,23 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(`${bffUrl}/v1/runtime`, {
-      cache: 'no-store',
-      headers: maxxBffHeaders(),
-      signal: AbortSignal.timeout(3500),
-    })
+    const headers = maxxBffHeaders()
+    const [runtimeResponse, agUiResponse] = await Promise.all([
+      fetch(`${bffUrl}/v1/runtime`, {
+        cache: 'no-store',
+        headers,
+        signal: AbortSignal.timeout(3500),
+      }),
+      fetch(`${bffUrl}/v1/maxx/ag-ui/events?client_id=maxx-demo&limit=40`, {
+        cache: 'no-store',
+        headers,
+        signal: AbortSignal.timeout(3500),
+      }),
+    ])
 
-    const payload = (await response.json()) as Record<string, unknown>
-    return NextResponse.json(payload, { status: response.status })
+    const payload = (await runtimeResponse.json()) as Record<string, unknown>
+    const agUi = agUiResponse.ok ? ((await agUiResponse.json()) as Record<string, unknown>) : null
+    return NextResponse.json({ ...payload, ag_ui: agUi }, { status: runtimeResponse.status })
   } catch {
     return NextResponse.json(
       {
