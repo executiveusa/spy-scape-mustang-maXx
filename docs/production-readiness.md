@@ -124,6 +124,17 @@ npm run verify:production
 
 The default Next.js build is Vercel-safe and does not emit `.next/standalone`. Container builds opt into standalone output with `MAXX_NEXT_STANDALONE=true`.
 
+VPS network exposure verification:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 `
+  -BackendUrl "http://31.220.58.212:8010" `
+  -BrowserWorkerUrl "http://31.220.58.212:8020" `
+  -ExpectedMode controlled-demo
+```
+
+Use `-ExpectedMode controlled-demo` only for owner-approved demos with no real client data. Use `-ExpectedMode private-required` before real-client launch; that mode must not pass until direct public access to the BFF and browser worker is removed.
+
 Strict live backend verification:
 
 ```powershell
@@ -132,6 +143,8 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BrowserWorkerUrl "https://private-or-tunneled-browser-worker-origin" `
   -FrontendUrl "https://your-vercel-preview-url" `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
+  -CheckVpsNetworkExposure `
+  -NetworkExpectedMode private-required `
   -RequireLiveStack `
   -RequireMaxxRuntimeExecutionReady
 ```

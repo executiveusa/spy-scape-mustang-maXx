@@ -4,6 +4,10 @@ param(
   [string]$BrowserWorkerUrl = $env:MAXX_VERIFY_BROWSER_WORKER_URL,
   [string]$BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET,
   [string]$OperatorPassword = $env:MAXX_OPERATOR_PASSWORD,
+  [string]$SecretFile,
+  [ValidateSet('controlled-demo', 'private-required')]
+  [string]$NetworkExpectedMode = 'controlled-demo',
+  [switch]$CheckVpsNetworkExposure,
   [switch]$RequireLiveStack,
   [switch]$RequireMaxxRuntimeExecutionReady,
   [switch]$RequireHermesExecutionReady
@@ -124,6 +128,29 @@ try {
     $BackendUrl = 'http://127.0.0.1:8010'
   }
   $BackendUrl = $BackendUrl.TrimEnd('/')
+
+  if ($CheckVpsNetworkExposure) {
+    Invoke-Step "VPS network exposure gate" {
+      $args = @(
+        '-BackendUrl', $BackendUrl,
+        '-ExpectedMode', $NetworkExpectedMode
+      )
+      if ($BrowserWorkerUrl) {
+        $args += @('-BrowserWorkerUrl', $BrowserWorkerUrl)
+      }
+      if ($SecretFile) {
+        $args += @('-SecretFile', $SecretFile)
+      }
+      if ($BffSharedSecret) {
+        $args += @('-BffSharedSecret', $BffSharedSecret)
+      }
+
+      & "$PSScriptRoot\check-vps-network-exposure.ps1" @args
+      if ($LASTEXITCODE -ne 0) {
+        throw "VPS network exposure gate failed with exit code $LASTEXITCODE."
+      }
+    }
+  }
 
   $backendReachable = $false
   try {

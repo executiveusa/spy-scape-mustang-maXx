@@ -17,8 +17,15 @@ for (const command of ['test:smart-site-story', 'test:operator-auth', 'npx tsc -
 assert.match(verify, /test_browser_worker\.py/, 'verify-production must run browser worker tests')
 assert.match(verify, /operator-session/, 'verify-production must test operator login/session')
 assert.match(verify, /smart-site-story/, 'verify-production must smoke the public story endpoint')
+assert.match(verify, /check-vps-network-exposure\.ps1/, 'verify-production must be able to run the VPS network exposure gate')
 assert.match(readRequired('backend/README.md'), /\/v1\/maxx\/ag-ui\/events/, 'backend README must document the AG-UI event bridge')
 assert.match(readRequired('docs/production-readiness.md'), /\/v1\/maxx\/ag-ui\/events/, 'production readiness must include AG-UI bridge verification')
+
+const exposure = readRequired('scripts/check-vps-network-exposure.ps1')
+assert.match(exposure, /private-required/, 'network exposure checker must support a private-required real-client gate')
+assert.match(exposure, /controlled-demo/, 'network exposure checker must support a controlled-demo gate')
+assert.match(exposure, /\/v1\/maxx\/runtime\/health/, 'network exposure checker must verify sensitive runtime health protection')
+assert.match(exposure, /MAXX_BFF_SHARED_SECRET/, 'network exposure checker must support the BFF shared secret')
 
 const backup = readRequired('scripts/backup-vps-state.ps1')
 assert.match(backup, /\/data\/maxx/, 'backup script must include MAXX data volume')
@@ -63,5 +70,8 @@ for (const doc of [
   assert.match(body, /Coolify|VPS/i, `${doc} must include VPS/Coolify guidance`)
   assert.match(body, /browser worker|browser-worker|MAXX_BROWSER/i, `${doc} must include private browser worker guidance`)
 }
+
+assert.match(readRequired('docs/backend-deploy-runbook.md'), /check-vps-network-exposure\.ps1/, 'backend deploy runbook must document the VPS exposure gate')
+assert.match(readRequired('docs/production-readiness.md'), /check-vps-network-exposure\.ps1/, 'production readiness must document the VPS exposure gate')
 
 console.log('launch ops contract ok')

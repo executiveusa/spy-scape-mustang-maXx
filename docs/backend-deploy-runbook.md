@@ -95,6 +95,29 @@ powershell -ExecutionPolicy Bypass -File scripts/connect-coolify-browser-worker.
 
 ## Production Verification
 
+VPS exposure gate for the current controlled demo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 `
+  -BackendUrl "http://31.220.58.212:8010" `
+  -BrowserWorkerUrl "http://31.220.58.212:8020" `
+  -SecretFile "E:\THE PAULI FILES\.ENV" `
+  -ExpectedMode controlled-demo
+```
+
+This command may pass while `8010` and `8020` are publicly reachable, but only as a controlled-demo posture. It verifies that sensitive BFF runtime routes reject unauthenticated requests and that the browser worker remains secret-protected, allowlisted, and autonomy-disabled.
+
+Real-client network gate:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 `
+  -BackendUrl "http://31.220.58.212:8010" `
+  -BrowserWorkerUrl "http://31.220.58.212:8020" `
+  -ExpectedMode private-required
+```
+
+This must fail while direct public ports are reachable. It should pass only after FastAPI and the browser worker are behind a firewall, private proxy, VPN, or tunnel.
+
 Controlled demo:
 
 ```powershell
@@ -104,6 +127,8 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -FrontendUrl "https://spy-scape-mustang-maxx.vercel.app" `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -OperatorPassword $env:MAXX_OPERATOR_PASSWORD `
+  -CheckVpsNetworkExposure `
+  -NetworkExpectedMode controlled-demo `
   -RequireLiveStack `
   -RequireMaxxRuntimeExecutionReady
 ```
