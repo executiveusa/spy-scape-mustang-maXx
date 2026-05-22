@@ -89,7 +89,7 @@ Use one of these before real client traffic:
 
 | Option | Use for | Required state |
 | --- | --- | --- |
-| A. Loopback bind plus reverse proxy | Preferred production path | FastAPI binds to `127.0.0.1:8010`; only the proxy/tunnel can reach it. |
+| A. Loopback bind plus reverse proxy | Preferred production path | FastAPI binds to `127.0.0.1:8010`; Vercel uses a named proxy/tunnel origin; direct `8010` and `8020` are closed. Use HTTPS when a real domain or certificate is available. |
 | B. Firewall allowlist | Trusted operator/Vercel-only access | VPS firewall allows `8010` only from approved IPs; all other inbound traffic is denied. |
 | C. Public port plus shared secret | Controlled demo only | `MAXX_BFF_SHARED_SECRET` is active, `/v1/*` rejects unauthenticated calls, and no real client data is stored. |
 
@@ -98,6 +98,44 @@ Binary launch gate:
 ```text
 GO for real clients: Option A or Option B is active, app-level auth is active, and strict verification passes.
 NO-GO for real clients: backend port 8010 is public, even if the shared secret is active.
+```
+
+### Option A Caddy Bootstrap
+
+Use this when Cloudflare is paused and no custom domain is active yet:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-vps-private-origin.ps1 `
+  -SshTarget "root@31.220.58.212" `
+  -OriginHost "maxx-api.31.220.58.212.sslip.io"
+```
+
+Then set Vercel:
+
+```env
+MAXX_BFF_URL=http://maxx-api.31.220.58.212.sslip.io
+```
+
+Use `-AttemptTls` if you want Certbot to request a Let's Encrypt certificate. If `sslip.io` is rate-limited, keep the HTTP named origin temporarily and move to a real domain before full client production.
+
+After Caddy health is confirmed, apply firewall closure:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-vps-private-origin.ps1 `
+  -SshTarget "root@31.220.58.212" `
+  -OriginHost "maxx-api.31.220.58.212.sslip.io" `
+  -ApplyFirewall
+```
+
+Strict gate for Option A:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 `
+  -BackendUrl "http://maxx-api.31.220.58.212.sslip.io" `
+  -DirectBackendUrl "http://31.220.58.212:8010" `
+  -DirectBrowserWorkerUrl "http://31.220.58.212:8020" `
+  -ExpectedMode private-required `
+  -AllowHttpNamedOriginForBootstrap
 ```
 
 ### UFW Example For Option B
