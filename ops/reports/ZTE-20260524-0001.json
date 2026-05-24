@@ -1,0 +1,31 @@
+{
+  "bead_id": "ZTE-20260524-0001",
+  "mode": "ZTE MODE",
+  "branch": "codex/operator-control-room",
+  "objective": "Create a unified Agent MAXX operator control-room shell and harden the visual verification/login workflow.",
+  "changes": [
+    "Added shared Agent MAXX operator navigation across dashboard, Lead Desk, Lead Acquisition, tenants, and deploy surfaces.",
+    "Added operator logout through the signed operator session API.",
+    "Normalized browser-facing API calls to trailing-slash URLs to match the Next.js routing policy.",
+    "Changed successful operator login to hard same-origin navigation so middleware sees the freshly issued session cookie.",
+    "Hardened visual inspection to wait for hydrated login controls and route navigation.",
+    "Extended operator-auth contract tests to require the shared operator shell."
+  ],
+  "verification": {
+    "backend_unittest": "passed: py -3 -m unittest backend\\tests\\test_maxx_bff.py -v",
+    "operator_auth_contract": "passed: npm run test:operator-auth",
+    "visible_identity_contract": "passed: npm run test:maxx-visible-identity",
+    "launch_ops_contract": "passed: npm run test:launch-ops",
+    "typescript": "passed: npx tsc --noEmit",
+    "build": "passed: npm run build",
+    "visual": "passed: npm run verify:visual with local Next dev server and throwaway operator auth"
+  },
+  "visual_report": "ops/visual-inspection/2026-05-24T10-05-53-046Z/report.json",
+  "risks": [
+    "Local visual verification uses a dev server because production-mode cookies are Secure and require HTTPS.",
+    "Dashboard runtime cards show degraded/loading state without a live BFF shared secret in the local visual environment.",
+    "Real-client readiness still depends on private backend policy, rotated secrets, and HTTPS domain/tunnel."
+  ],
+  "status": "ready_for_judge"
+}
+

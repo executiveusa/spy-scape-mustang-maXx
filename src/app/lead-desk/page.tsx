@@ -14,6 +14,7 @@ import {
   Sparkles,
   UserRound,
 } from 'lucide-react'
+import OperatorNav from '@/components/operator/OperatorNav'
 
 type LeadDeskTask = {
   task_id: string
@@ -93,7 +94,7 @@ export default function LeadDeskPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/lead-desk', { cache: 'no-store' })
+      const response = await fetch('/api/lead-desk/', { cache: 'no-store' })
       const nextPayload = (await response.json()) as LeadDeskPayload
       setPayload(nextPayload)
     } catch (nextError) {
@@ -125,7 +126,7 @@ export default function LeadDeskPage() {
     setError(null)
 
     try {
-      const response = await fetch('/api/lead-desk', {
+      const response = await fetch('/api/lead-desk/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ export default function LeadDeskPage() {
     setSubmitMessage(null)
 
     try {
-      const response = await fetch('/api/lead-desk', {
+      const response = await fetch('/api/lead-desk/', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -184,8 +185,9 @@ export default function LeadDeskPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050810] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[#050810] text-white">
+      <OperatorNav />
+      <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="mb-3 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.35em] text-cyan-400/80">

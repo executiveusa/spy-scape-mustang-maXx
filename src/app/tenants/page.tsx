@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Building2, Loader2, Plus, Radio, Shield, Sparkles } from 'lucide-react'
+import OperatorNav from '@/components/operator/OperatorNav'
 
 type Tenant = {
   client_id: string
@@ -59,7 +60,7 @@ export default function TenantsPage() {
     setError(null)
 
     try {
-      const response = await fetch('/api/tenants', { cache: 'no-store' })
+      const response = await fetch('/api/tenants/', { cache: 'no-store' })
       const payload = (await response.json()) as TenantPayload
       setTenants(payload.clients ?? [])
       if (payload.detail) {
@@ -87,7 +88,7 @@ export default function TenantsPage() {
     setError(null)
 
     try {
-      const response = await fetch('/api/tenants', {
+      const response = await fetch('/api/tenants/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -120,7 +121,7 @@ export default function TenantsPage() {
     setError(null)
 
     try {
-      const response = await fetch('/api/tenants', {
+      const response = await fetch('/api/tenants/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'provision', client_id: clientId }),
@@ -142,8 +143,9 @@ export default function TenantsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050810] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[#050810] text-white">
+      <OperatorNav />
+      <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="mb-3 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.35em] text-cyan-400/80">

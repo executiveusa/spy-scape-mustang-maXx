@@ -11,19 +11,18 @@ import {
   Clock3,
   Database,
   Eye,
-  Home,
   Loader2,
   Lock,
   Radio,
   RefreshCw,
   Radar,
   Server,
-  Shield,
   Target,
   UserRound,
   Wifi,
   XCircle,
 } from 'lucide-react'
+import OperatorNav from '@/components/operator/OperatorNav'
 
 type SystemStatus = 'online' | 'warning' | 'offline'
 
@@ -123,7 +122,7 @@ export default function DashboardPage() {
     }
     setError(null)
     try {
-      const response = await fetch('/api/runtime', { cache: 'no-store' })
+      const response = await fetch('/api/runtime/', { cache: 'no-store' })
       const nextPayload = (await response.json()) as RuntimePayload & { detail?: string }
       if (!response.ok) {
         throw new Error(nextPayload.detail ?? 'Agent MAXX runtime failed to load.')
@@ -155,33 +154,18 @@ export default function DashboardPage() {
     <main className="min-h-screen overflow-hidden bg-[#050810] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(70,213,255,0.16),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(244,211,94,0.09),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.035)_0,transparent_30%)]" />
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050810]/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <Shield className="h-7 w-7 text-cyan-300" />
-            <div>
-              <div className="text-sm font-black uppercase tracking-[0.28em]">Agent MAXX</div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-cyan-300/70">
-                Operator Command Center
-              </div>
-            </div>
-          </Link>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => void loadRuntime('refresh')}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono uppercase tracking-[0.2em] text-white/70 transition hover:border-cyan-300/40 hover:text-cyan-200"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <Link href="/" className="rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition hover:text-white">
-              <Home className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <OperatorNav />
 
       <section className="relative z-10 mx-auto max-w-7xl px-6 py-10">
+        <div className="mb-6 flex justify-end">
+          <button
+            onClick={() => void loadRuntime('refresh')}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 font-mono text-xs uppercase tracking-[0.2em] text-white/70 transition hover:border-cyan-300/40 hover:text-cyan-200"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh runtime
+          </button>
+        </div>
         <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-[32px] border border-white/10 bg-white/[0.04] p-7 shadow-2xl shadow-cyan-950/20">
             <div className="mb-4 flex flex-wrap items-center gap-3">

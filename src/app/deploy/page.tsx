@@ -14,6 +14,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { fetchMaxxBffJson } from '@/lib/maxxBffServer'
+import OperatorNav from '@/components/operator/OperatorNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,6 +90,7 @@ export default async function DeployPage() {
 
   return (
     <main className="min-h-screen bg-[#050810] text-white">
+      <OperatorNav />
       <div className="mx-auto max-w-7xl px-6 py-8">
         <header className="mb-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-6 shadow-[0_0_80px_rgba(0,0,0,0.25)]">
           <div className="mb-4 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.35em] text-cyan-400/80">

@@ -4,10 +4,9 @@ import { FormEvent, Suspense, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Shield, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 function OperatorLoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const nextPath = searchParams.get('next') || '/dashboard'
   const isUnconfigured = searchParams.get('auth') === 'unconfigured'
@@ -24,7 +23,7 @@ function OperatorLoginForm() {
     setError(null)
 
     try {
-      const response = await fetch('/api/operator-session', {
+      const response = await fetch('/api/operator-session/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,8 +37,7 @@ function OperatorLoginForm() {
       if (!response.ok) {
         throw new Error(payload.detail ?? 'Operator login failed.')
       }
-      router.replace(nextPath.startsWith('/') ? nextPath : '/dashboard')
-      router.refresh()
+      window.location.assign(nextPath.startsWith('/') ? nextPath : '/dashboard')
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'Operator login failed.')
     } finally {

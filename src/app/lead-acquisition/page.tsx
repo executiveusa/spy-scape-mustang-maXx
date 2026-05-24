@@ -13,6 +13,7 @@ import {
   Target,
   XCircle,
 } from 'lucide-react'
+import OperatorNav from '@/components/operator/OperatorNav'
 
 type SourceStatus = {
   source: string
@@ -114,7 +115,7 @@ export default function LeadAcquisitionPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/lead-acquisition', { cache: 'no-store' })
+      const response = await fetch('/api/lead-acquisition/', { cache: 'no-store' })
       const nextPayload = (await response.json()) as AcquisitionPayload
       setPayload(nextPayload)
     } catch (loadError) {
@@ -142,7 +143,7 @@ export default function LeadAcquisitionPage() {
     setMessage(null)
     setError(null)
     try {
-      const response = await fetch('/api/lead-acquisition', {
+      const response = await fetch('/api/lead-acquisition/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -171,7 +172,7 @@ export default function LeadAcquisitionPage() {
     setMessage(null)
     setError(null)
     try {
-      const response = await fetch('/api/lead-acquisition', {
+      const response = await fetch('/api/lead-acquisition/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,8 +206,9 @@ export default function LeadAcquisitionPage() {
   const jobs = payload?.jobs ?? []
 
   return (
-    <main className="min-h-screen bg-[#050810] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[#050810] text-white">
+      <OperatorNav />
+      <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="mb-3 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.35em] text-cyan-400/80">
