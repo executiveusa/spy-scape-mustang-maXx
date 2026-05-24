@@ -35,13 +35,17 @@ async function loginIfPossible(page) {
     throw new Error(`Login page failed with status ${response?.status() ?? 'unknown'}`)
   }
 
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => undefined)
   await page.locator('input[type="password"]').fill(operatorPassword)
   const tenantInput = page.locator('input:not([type="password"])')
   if ((await tenantInput.count()) > 0) {
     await tenantInput.first().fill(tenantId)
   }
-  await page.getByRole('button', { name: /Open command deck/i }).click()
-  await page.waitForLoadState('domcontentloaded')
+  const submitButton = page.getByRole('button', { name: /Open command deck/i })
+  await submitButton.waitFor({ state: 'visible', timeout: 10000 })
+  await submitButton.click()
+  await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 15000 }).catch(() => undefined)
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined)
 
   if (page.url().includes('/login')) {
     throw new Error('Operator login did not leave /login. Check MAXX_OPERATOR_PASSWORD and session secret.')

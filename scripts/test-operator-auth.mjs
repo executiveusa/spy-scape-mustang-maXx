@@ -44,6 +44,23 @@ assert.match(dashboard, /ag_ui/, 'dashboard must render the AG-UI operator event
 assert.match(dashboard, /Lead Acquisition/, 'dashboard must link to the Lead Acquisition operator surface')
 assert.doesNotMatch(dashboard, /Training Modules|Comic Reader|Nanon Banana|Mock Data/, 'dashboard must not show stale mock product surfaces')
 
+const operatorNav = readRequired('src/components/operator/OperatorNav.tsx')
+assert.match(operatorNav, /Operator Control Room/, 'operator nav must brand the backend UI as Agent MAXX')
+assert.match(operatorNav, /\/api\/operator-session/, 'operator nav must provide a logout path through the session API')
+for (const route of ['/dashboard', '/lead-desk', '/lead-acquisition', '/tenants', '/deploy']) {
+  assert.match(operatorNav, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `operator nav must link ${route}`)
+}
+
+for (const page of [
+  'src/app/dashboard/page.tsx',
+  'src/app/lead-desk/page.tsx',
+  'src/app/lead-acquisition/page.tsx',
+  'src/app/tenants/page.tsx',
+  'src/app/deploy/page.tsx',
+]) {
+  assert.match(readRequired(page), /OperatorNav/, `${page} must render the shared Agent MAXX operator shell`)
+}
+
 for (const apiRoute of [
   'src/app/api/runtime/route.ts',
   'src/app/api/tenants/route.ts',
