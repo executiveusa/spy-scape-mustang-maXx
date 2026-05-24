@@ -160,6 +160,15 @@ Static and build verification:
 npm run verify:production
 ```
 
+Visual verification:
+
+```powershell
+$env:MAXX_VISUAL_BASE_URL="https://spy-scape-mustang-maxx.vercel.app"
+npm run verify:visual
+```
+
+This command must be run after UI, route, proxy, or deployment changes. It writes screenshot evidence and `report.json` to `ops/visual-inspection/<timestamp>/`. If `MAXX_OPERATOR_PASSWORD` is not set, protected operator routes are expected to redirect to `/login`; with the password set, the screenshots should show the authenticated dashboard, Lead Desk, acquisition lane, tenants, and deploy console.
+
 The default Next.js build is Vercel-safe and does not emit `.next/standalone`. Container builds opt into standalone output with `MAXX_NEXT_STANDALONE=true`.
 
 VPS network exposure verification:

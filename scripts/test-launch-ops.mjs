@@ -52,6 +52,8 @@ assert.match(workerManifest, /Dockerfile\.browser-worker/, 'browser worker Cooli
 assert.match(readRequired('ops/private-origin/nginx-agent-maxx-private-origin.conf'), /proxy_pass http:\/\/127\.0\.0\.1:8010/, 'private-origin Nginx template must proxy only to loopback BFF')
 assert.match(readRequired('scripts/install-vps-private-origin.ps1'), /sslip\.io/, 'private-origin installer must provide a no-DNS bootstrap hostname')
 assert.match(readRequired('scripts/install-vps-private-origin.ps1'), /ufw deny 8010\/tcp/, 'private-origin installer must close direct BFF port when requested')
+assert.match(readRequired('package.json'), /verify:visual/, 'package scripts must include a visual inspection command')
+assert.match(readRequired('scripts/visual-inspect.mjs'), /ops['"], ['"]visual-inspection/, 'visual inspection must write screenshot evidence under ops/visual-inspection')
 
 const browserWorkerConnect = readRequired('scripts/connect-coolify-browser-worker.ps1')
 assert.match(browserWorkerConnect, /MAXX_BROWSER_WORKER_SECRET/, 'browser worker connector must update worker secret')
@@ -80,5 +82,7 @@ for (const doc of [
 
 assert.match(readRequired('docs/backend-deploy-runbook.md'), /check-vps-network-exposure\.ps1/, 'backend deploy runbook must document the VPS exposure gate')
 assert.match(readRequired('docs/production-readiness.md'), /check-vps-network-exposure\.ps1/, 'production readiness must document the VPS exposure gate')
+assert.match(readRequired('docs/backend-deploy-runbook.md'), /npm run verify:visual/, 'backend deploy runbook must include visual inspection')
+assert.match(readRequired('docs/production-readiness.md'), /npm run verify:visual/, 'production readiness must include visual inspection')
 
 console.log('launch ops contract ok')
