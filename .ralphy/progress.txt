@@ -7,3 +7,4 @@
 - 2026-05-18: Wave 4 smart-site story in progress on codex/wave-4-smart-site-story. Added sanitized public story endpoint and runtime-backed 006 feature mapping for Q Branch, MI6 Desk, GoldenEye, Aston Grid, and Spectre Shield without touching final art assets.
 - 2026-05-18: Wave 5 launch ops in progress on codex/wave-5-launch. Added launch verification coverage, VPS backup/restore scripts, env parity/token rotation docs, and the 15-minute new-client runbook.
 - 2026-05-24: Operator control-room slice in progress on `codex/operator-control-room` under `ZTE-20260524-0001`. Added a shared Agent MAXX operator shell, hardened operator login navigation, normalized trailing-slash API calls, and made visual inspection wait for hydrated authenticated routes.
+- 2026-05-24: Installed local `html-in-canvas-visual-lab` skill and added the Agent MAXX visual-lab plan. This places HTML-in-Canvas after backend/operator truth and before final SeedDance/car/intro animation work.
