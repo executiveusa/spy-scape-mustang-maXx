@@ -4,15 +4,17 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowRight,
-  CheckCircle2,
   DatabaseZap,
   Loader2,
   Radar,
   ShieldCheck,
   Sparkles,
   Target,
-  XCircle,
 } from 'lucide-react'
+import LeadAcquisitionReviewPanel, {
+  type AcquisitionAction,
+  type AcquisitionProspect,
+} from '@/components/operator/LeadAcquisitionReviewPanel'
 import OperatorNav from '@/components/operator/OperatorNav'
 
 type SourceStatus = {
@@ -22,33 +24,6 @@ type SourceStatus = {
   configured: boolean
   enabled: boolean
   detail: string
-}
-
-type Evidence = {
-  evidence_id: string
-  label: string
-  url?: string | null
-  excerpt: string
-  captured_at: string
-}
-
-type Prospect = {
-  prospect_id: string
-  status: string
-  source: string
-  name?: string | null
-  title?: string | null
-  company: string
-  email?: string | null
-  phone?: string | null
-  linkedin_url?: string | null
-  organization_domain?: string | null
-  location?: string | null
-  score: number
-  confidence: string
-  reasons: string[]
-  evidence: Evidence[]
-  promoted_task_id?: string | null
 }
 
 type AcquisitionJob = {
@@ -64,9 +39,11 @@ type AcquisitionJob = {
 
 type AcquisitionPayload = {
   status: string
+  client_id?: string
+  operator_tenant_id?: string
   sources: SourceStatus[]
   jobs: AcquisitionJob[]
-  prospects: Prospect[]
+  prospects: AcquisitionProspect[]
   manifest?: {
     business?: {
       public_name?: string
@@ -147,7 +124,7 @@ export default function LeadAcquisitionPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: 'maxx-demo',
+          client_id: payload?.client_id ?? 'maxx-demo',
           source: 'authorized-contact-import',
           query: 'Owner-approved demo prospects for Lead Desk review.',
           max_records: seedProspects.length,
@@ -167,7 +144,7 @@ export default function LeadAcquisitionPage() {
     }
   }
 
-  const prospectAction = async (prospectId: string, action: 'promote' | 'reject') => {
+  const prospectAction = async (prospectId: string, action: AcquisitionAction) => {
     setWorkingId(`${action}:${prospectId}`)
     setMessage(null)
     setError(null)
@@ -343,69 +320,12 @@ export default function LeadAcquisitionPage() {
             ) : (
               <div className="space-y-4">
                 {prospects.map((prospect) => (
-                  <div key={prospect.prospect_id} className="rounded-3xl border border-white/10 bg-black/20 p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-lg font-bold text-white">{prospect.company}</p>
-                        <p className="mt-1 text-sm text-white/55">
-                          {[prospect.name, prospect.title, prospect.location].filter(Boolean).join(' / ') || 'Contact pending'}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <StatusBadge status={prospect.status} />
-                        <ScoreBadge score={prospect.score} />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <MiniCard label="Confidence" value={prospect.confidence} />
-                      <MiniCard label="Email" value={prospect.email ?? 'missing'} />
-                      <MiniCard label="Domain" value={prospect.organization_domain ?? 'missing'} />
-                    </div>
-
-                    <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] px-4 py-3">
-                      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-300">Why MAXX flagged it</p>
-                      <div className="mt-3 space-y-2">
-                        {prospect.reasons.map((reason) => (
-                          <div key={reason} className="flex items-start gap-2 text-sm text-white/65">
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                            <span>{reason}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-2">
-                      {prospect.evidence.map((item) => (
-                        <div key={item.evidence_id} className="rounded-2xl border border-white/10 bg-[#050810] px-4 py-3">
-                          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">{item.label}</p>
-                          <p className="mt-2 text-sm text-white/65">{item.excerpt}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={Boolean(prospect.promoted_task_id) || workingId === `promote:${prospect.prospect_id}`}
-                        onClick={() => void prospectAction(prospect.prospect_id, 'promote')}
-                        className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-emerald-300 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {workingId === `promote:${prospect.prospect_id}` ? 'Promoting' : 'Promote to Lead Desk'}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={prospect.status === 'rejected' || prospect.status === 'promoted' || workingId === `reject:${prospect.prospect_id}`}
-                        onClick={() => void prospectAction(prospect.prospect_id, 'reject')}
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white/70 transition hover:border-red-400/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          <XCircle className="h-3.5 w-3.5" />
-                          Reject
-                        </span>
-                      </button>
-                    </div>
-                  </div>
+                  <LeadAcquisitionReviewPanel
+                    key={prospect.prospect_id}
+                    prospect={prospect}
+                    workingId={workingId}
+                    onAction={(prospectId, action) => void prospectAction(prospectId, action)}
+                  />
                 ))}
               </div>
             )}
@@ -422,15 +342,6 @@ function MetricCard({ label, value, detail }: { label: string; value: string; de
       <p className="font-mono text-xs uppercase tracking-[0.22em] text-white/40">{label}</p>
       <p className="mt-3 text-3xl font-black text-white">{value}</p>
       <p className="mt-2 text-sm text-white/60">{detail}</p>
-    </div>
-  )
-}
-
-function MiniCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">{label}</p>
-      <p className="mt-2 break-words text-sm text-white/80">{value}</p>
     </div>
   )
 }
@@ -461,20 +372,6 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] ${styles[status] ?? 'border-white/10 bg-white/5 text-white/60'}`}>
       {status}
-    </span>
-  )
-}
-
-function ScoreBadge({ score }: { score: number }) {
-  const style =
-    score >= 75
-      ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300'
-      : score >= 55
-        ? 'border-yellow-400/20 bg-yellow-400/10 text-yellow-200'
-        : 'border-orange-400/20 bg-orange-400/10 text-orange-200'
-  return (
-    <span className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] ${style}`}>
-      {score}/100
     </span>
   )
 }
