@@ -193,12 +193,13 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -FrontendUrl "https://your-vercel-preview-url" `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -CheckVpsNetworkExposure `
+  -RunVisualInspection `
   -NetworkExpectedMode private-required `
   -RequireLiveStack `
   -RequireMaxxRuntimeExecutionReady
 ```
 
-The strict command must pass before claiming model-backed Lead Desk execution.
+The strict command must pass before claiming model-backed Lead Desk execution. `-RunVisualInspection` makes the same command capture browser screenshot evidence for `/`, `/dashboard`, `/lead-desk`, `/lead-acquisition`, `/tenants`, and `/deploy`.
 
 ## jCodeMunch and Superpowers
 
