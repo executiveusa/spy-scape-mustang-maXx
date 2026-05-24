@@ -51,7 +51,7 @@ assert.match(workerManifest, /Dockerfile\.browser-worker/, 'browser worker Cooli
 
 assert.match(readRequired('ops/private-origin/nginx-agent-maxx-private-origin.conf'), /proxy_pass http:\/\/127\.0\.0\.1:8010/, 'private-origin Nginx template must proxy only to loopback BFF')
 assert.match(readRequired('scripts/install-vps-private-origin.ps1'), /sslip\.io/, 'private-origin installer must provide a no-DNS bootstrap hostname')
-assert.match(readRequired('scripts/install-vps-private-origin.ps1'), /ufw deny 8010\/tcp/, 'private-origin installer must close direct BFF port when requested')
+assert.match(readRequired('scripts/install-vps-private-origin.ps1'), /DOCKER-USER/, 'private-origin installer must close Docker-published direct ports when requested')
 assert.match(readRequired('package.json'), /verify:visual/, 'package scripts must include a visual inspection command')
 assert.match(readRequired('scripts/visual-inspect.mjs'), /ops['"], ['"]visual-inspection/, 'visual inspection must write screenshot evidence under ops/visual-inspection')
 

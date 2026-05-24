@@ -127,6 +127,8 @@ powershell -ExecutionPolicy Bypass -File scripts/install-vps-private-origin.ps1 
   -ApplyFirewall
 ```
 
+The installer uses durable `iptables`/`netfilter-persistent` rules for direct-port closure. The public interface is blocked for `8010` and `8020`, while loopback stays open so the named Nginx origin can still proxy to Agent MAXX.
+
 Strict gate for Option A:
 
 ```powershell
