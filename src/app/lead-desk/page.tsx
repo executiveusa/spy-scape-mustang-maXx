@@ -3,52 +3,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
-  AlertTriangle,
   ArrowRight,
-  CheckCircle2,
   Clock3,
   Loader2,
   Radio,
   Send,
   Shield,
   Sparkles,
-  UserRound,
 } from 'lucide-react'
+import LeadDeskReviewPanel, { type LeadDeskOperatorStatus, type LeadDeskTask } from '@/components/operator/LeadDeskReviewPanel'
 import OperatorNav from '@/components/operator/OperatorNav'
-
-type LeadDeskTask = {
-  task_id: string
-  status: string
-  client_id: string
-  route_target: string
-  routing_target: string
-  operator_summary: string
-  next_action: string
-  created_at: string
-  qualification: {
-    tier: 'hot' | 'warm' | 'cold'
-    score: number
-    next_action: string
-  }
-  maxx_dispatch: {
-    status: string
-    provider: string
-    model: string
-    configured: boolean
-    notes: string[]
-    response_excerpt?: string | null
-  }
-  follow_up_actions: string[]
-  heartbeat_summary: {
-    status: string
-    next_due_at: string
-    summary: string
-    pending_task_ids: string[]
-  }
-}
 
 type LeadDeskPayload = {
   status: string
+  client_id?: string
+  operator_tenant_id?: string
   workflow_count: number
   tasks: LeadDeskTask[]
   target: string
@@ -97,6 +66,9 @@ export default function LeadDeskPage() {
       const response = await fetch('/api/lead-desk/', { cache: 'no-store' })
       const nextPayload = (await response.json()) as LeadDeskPayload
       setPayload(nextPayload)
+      if (nextPayload.client_id) {
+        setForm((current) => ({ ...current, client_id: nextPayload.client_id ?? current.client_id }))
+      }
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : 'Lead Desk surface failed to load.')
     } finally {
@@ -143,7 +115,7 @@ export default function LeadDeskPage() {
       setSubmitMessage(
         `Lead Desk task ${nextTask.task_id} created as ${nextTask.status}. Agent MAXX dispatch: ${nextTask.maxx_dispatch.status}.`,
       )
-      setForm(emptyForm)
+      setForm({ ...emptyForm, client_id: payload?.client_id ?? form.client_id })
       await loadLeadDesk()
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Lead Desk submission failed.')
@@ -152,10 +124,15 @@ export default function LeadDeskPage() {
     }
   }
 
-  const updateTask = async (taskId: string, status: 'follow-up' | 'completed') => {
+  const updateTask = async (taskId: string, status: LeadDeskOperatorStatus) => {
     setUpdatingTaskId(taskId)
     setError(null)
     setSubmitMessage(null)
+    const statusNotes: Record<LeadDeskOperatorStatus, string> = {
+      attention: 'Operator escalated this task for attention.',
+      'follow-up': 'Operator moved this task into follow-up.',
+      completed: 'Operator marked this task complete.',
+    }
 
     try {
       const response = await fetch('/api/lead-desk/', {
@@ -166,7 +143,7 @@ export default function LeadDeskPage() {
         body: JSON.stringify({
           task_id: taskId,
           status,
-          note: status === 'completed' ? 'Operator marked this task complete.' : 'Operator moved this task into follow-up.',
+          note: statusNotes[status],
         }),
       })
 
@@ -383,91 +360,12 @@ export default function LeadDeskPage() {
               ) : (
                 <div className="space-y-3">
                   {tasks.map((task) => (
-                    <div key={task.task_id} className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-2.5 w-2.5 rounded-full ${tierDot(task.qualification.tier)}`} />
-                          <p className="font-mono text-xs uppercase tracking-[0.24em] text-white/45">
-                            {task.task_id}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <StatusBadge status={task.status} />
-                          <TierBadge tier={task.qualification.tier} />
-                        </div>
-                      </div>
-
-                      <p className="mt-3 text-sm leading-6 text-white/80">{task.operator_summary}</p>
-
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <MiniCard label="Score" value={`${task.qualification.score}`} />
-                        <MiniCard label="Route" value={task.routing_target ?? task.route_target} />
-                        <MiniCard label="Next" value={task.next_action} />
-                        <MiniCard label="Dispatch" value={task.maxx_dispatch.status} />
-                      </div>
-
-                      <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-300">
-                            Heartbeat {task.heartbeat_summary.status}
-                          </p>
-                          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
-                            {task.heartbeat_summary.pending_task_ids.length} pending
-                          </p>
-                        </div>
-                        <p className="mt-2 text-sm text-white/65">{task.heartbeat_summary.summary}</p>
-                      </div>
-
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-[#050810] px-4 py-3">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">
-                          Follow-up actions
-                        </p>
-                        <div className="mt-3 space-y-2">
-                          {task.follow_up_actions.map((action) => (
-                            <div key={action} className="flex items-start gap-2 text-sm text-white/65">
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                              <span>{action}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {!task.maxx_dispatch.configured ? (
-                        <div className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-200">
-                          <div className="flex items-start gap-2">
-                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-300" />
-                            <span>{task.maxx_dispatch.notes[0] ?? 'Provider configuration is still missing.'}</span>
-                          </div>
-                        </div>
-                      ) : task.maxx_dispatch.response_excerpt ? (
-                        <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
-                          <div className="mb-2 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-300">
-                            <UserRound className="h-3.5 w-3.5" />
-                            Agent MAXX output
-                          </div>
-                          {task.maxx_dispatch.response_excerpt}
-                        </div>
-                      ) : null}
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={updatingTaskId === task.task_id || task.status === 'completed'}
-                          onClick={() => void updateTask(task.task_id, 'follow-up')}
-                          className="rounded-full border border-white/10 bg-white/5 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white/70 transition hover:border-cyan-400/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {updatingTaskId === task.task_id ? 'Updating' : 'Mark follow-up'}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingTaskId === task.task_id || task.status === 'completed'}
-                          onClick={() => void updateTask(task.task_id, 'completed')}
-                          className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-emerald-300 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Complete task
-                        </button>
-                      </div>
-                    </div>
+                    <LeadDeskReviewPanel
+                      key={task.task_id}
+                      task={task}
+                      updating={updatingTaskId === task.task_id}
+                      onUpdate={(taskId, status) => void updateTask(taskId, status)}
+                    />
                   ))}
                 </div>
               )}
@@ -496,49 +394,4 @@ function MetricCard({ label, value, detail }: { label: string; value: string; de
       <p className="mt-2 text-sm text-white/60">{detail}</p>
     </div>
   )
-}
-
-function MiniCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/40">{label}</p>
-      <p className="mt-2 text-sm text-white/80">{value}</p>
-    </div>
-  )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    completed: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300',
-    queued: 'border-yellow-400/20 bg-yellow-400/10 text-yellow-200',
-    blocked: 'border-red-400/20 bg-red-400/10 text-red-300',
-    attention: 'border-orange-400/20 bg-orange-400/10 text-orange-200',
-    triaged: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-300',
-  }
-
-  return (
-    <span className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] ${styles[status] ?? 'border-white/10 bg-white/5 text-white/60'}`}>
-      {status}
-    </span>
-  )
-}
-
-function TierBadge({ tier }: { tier: 'hot' | 'warm' | 'cold' }) {
-  const styles: Record<string, string> = {
-    hot: 'border-red-400/20 bg-red-400/10 text-red-300',
-    warm: 'border-yellow-400/20 bg-yellow-400/10 text-yellow-200',
-    cold: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-300',
-  }
-
-  return (
-    <span className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] ${styles[tier]}`}>
-      {tier}
-    </span>
-  )
-}
-
-function tierDot(tier: 'hot' | 'warm' | 'cold') {
-  if (tier === 'hot') return 'bg-red-400'
-  if (tier === 'warm') return 'bg-yellow-400'
-  return 'bg-cyan-400'
 }
