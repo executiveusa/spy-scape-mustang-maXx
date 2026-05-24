@@ -80,6 +80,18 @@ assert.match(leadDeskReview, /Escalate attention/, 'Lead Desk review panel must 
 assert.match(leadDeskReview, /Start follow-up/, 'Lead Desk review panel must support follow-up status updates')
 assert.match(leadDeskReview, /Complete task/, 'Lead Desk review panel must support completion')
 
+const leadAcquisitionPage = readRequired('src/app/lead-acquisition/page.tsx')
+assert.match(leadAcquisitionPage, /LeadAcquisitionReviewPanel/, 'Lead Acquisition must render the reusable prospect review panel')
+assert.match(leadAcquisitionPage, /payload\?\.client_id/, 'Lead Acquisition canary job must use the active tenant from the backend')
+
+const acquisitionReview = readRequired('src/components/operator/LeadAcquisitionReviewPanel.tsx')
+assert.match(acquisitionReview, /Why MAXX surfaced this prospect/, 'Acquisition review must explain why the prospect was surfaced')
+assert.match(acquisitionReview, /Compliance gate/, 'Acquisition review must expose compliance hold state')
+assert.match(acquisitionReview, /Source evidence/, 'Acquisition review must show source evidence')
+assert.match(acquisitionReview, /Promoted Lead Desk task/, 'Acquisition review must link promoted prospects back to Lead Desk')
+assert.match(acquisitionReview, /Promote to Lead Desk/, 'Acquisition review must support promotion')
+assert.match(acquisitionReview, /Reject before outreach/, 'Acquisition review must support rejection before outreach')
+
 for (const apiRoute of [
   'src/app/api/runtime/route.ts',
   'src/app/api/tenants/route.ts',
