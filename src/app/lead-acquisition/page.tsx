@@ -81,6 +81,7 @@ const seedProspects = [
   },
 ]
 
+/** Operator console for safe prospect discovery, review, and Lead Desk promotion. */
 export default function LeadAcquisitionPage() {
   const [payload, setPayload] = useState<AcquisitionPayload | null>(null)
   const [loading, setLoading] = useState(true)
@@ -336,6 +337,7 @@ export default function LeadAcquisitionPage() {
   )
 }
 
+/** Displays high-level acquisition queue metrics above the review workflow. */
 function MetricCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
@@ -346,6 +348,7 @@ function MetricCard({ label, value, detail }: { label: string; value: string; de
   )
 }
 
+/** Renders operator feedback after acquisition jobs and prospect actions. */
 function Notice({ tone, children }: { tone: 'success' | 'error'; children: React.ReactNode }) {
   const styles =
     tone === 'success'
@@ -354,6 +357,7 @@ function Notice({ tone, children }: { tone: 'success' | 'error'; children: React
   return <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${styles}`}>{children}</div>
 }
 
+/** Shows source and job states in a compact badge. */
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     enabled: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300',

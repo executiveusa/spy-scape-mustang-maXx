@@ -35,6 +35,7 @@ export type AcquisitionProspect = {
 
 export type AcquisitionAction = 'promote' | 'reject'
 
+/** Renders one operator-reviewable prospect with evidence, compliance state, and handoff actions. */
 export default function LeadAcquisitionReviewPanel({
   prospect,
   workingId,
@@ -189,6 +190,7 @@ export default function LeadAcquisitionReviewPanel({
   )
 }
 
+/** Keeps acquisition action buttons visually consistent while preserving per-action disabled rules. */
 function ActionButton({
   disabled,
   label,
@@ -224,6 +226,7 @@ function ActionButton({
   )
 }
 
+/** Displays one compact prospect attribute in the review grid. */
 function MiniCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
@@ -233,6 +236,7 @@ function MiniCard({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** Maps acquisition lifecycle statuses to operator-visible badges. */
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     qualified: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300',
@@ -249,6 +253,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+/** Shows the prospect score using the same threshold colors as the operator rubric. */
 function ScoreBadge({ score }: { score: number }) {
   const style =
     score >= 75
