@@ -23,6 +23,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import OperatorNav from '@/components/operator/OperatorNav'
+import OperatorLaunchChecklist, { type LaunchStep } from '@/components/operator/OperatorLaunchChecklist'
 
 type SystemStatus = 'online' | 'warning' | 'offline'
 
@@ -149,6 +150,38 @@ export default function DashboardPage() {
   const activeHeartbeats = payload?.heartbeats?.filter((heartbeat) => heartbeat.status !== 'clear') ?? []
   const taskEvents = useMemo(() => events.filter((event) => event.type === 'MAXX_TASK_STATE'), [events])
   const prospectEvents = useMemo(() => events.filter((event) => event.type === 'MAXX_PROSPECT_STATE'), [events])
+  const launchSteps: LaunchStep[] = [
+    {
+      label: 'Secure backend',
+      detail: payload?.operator_console?.real_client_ready ? 'Private-ready origin is reported.' : 'Controlled demo is live; private path remains the launch gate.',
+      status: payload?.operator_console?.real_client_ready ? 'complete' : payload?.operator_console ? 'current' : 'pending',
+      href: '/deploy',
+    },
+    {
+      label: 'Create tenant',
+      detail: (payload?.clients?.length ?? 0) > 0 ? 'At least one client record exists.' : 'Add the client identity and smart-site manifest.',
+      status: (payload?.clients?.length ?? 0) > 0 ? 'complete' : 'current',
+      href: '/tenants',
+    },
+    {
+      label: 'Provision MAXX',
+      detail: (payload?.maxx_runtime?.profiles_total ?? 0) > 0 ? 'A MAXX profile is ready for tenant work.' : 'Provision the tenant profile before live inquiries.',
+      status: (payload?.maxx_runtime?.profiles_total ?? 0) > 0 ? 'complete' : 'pending',
+      href: '/tenants',
+    },
+    {
+      label: 'Test Lead Desk',
+      detail: taskEvents.length > 0 ? 'Lead Desk has task events.' : 'Submit one inquiry and review the next action.',
+      status: taskEvents.length > 0 ? 'complete' : 'current',
+      href: '/lead-desk',
+    },
+    {
+      label: 'Review prospects',
+      detail: prospectEvents.length > 0 ? 'Acquisition evidence is visible.' : 'Run the safe acquisition pass when ready.',
+      status: prospectEvents.length > 0 ? 'complete' : 'pending',
+      href: '/lead-acquisition',
+    },
+  ]
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050810] text-white">
@@ -167,7 +200,7 @@ export default function DashboardPage() {
           </button>
         </div>
         <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-[32px] border border-white/10 bg-white/[0.04] p-7 shadow-2xl shadow-cyan-950/20">
+          <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="rounded-[32px] border border-white/10 bg-white/[0.04] p-7 shadow-2xl shadow-cyan-950/20">
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <StatusBadge value={payload?.status ?? (loading ? 'loading' : 'degraded')} />
               <span className="font-mono text-xs uppercase tracking-[0.28em] text-white/45">
@@ -189,7 +222,7 @@ export default function DashboardPage() {
             )}
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-[32px] border border-cyan-300/15 bg-cyan-300/[0.055] p-6">
+          <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="rounded-[32px] border border-cyan-300/15 bg-cyan-300/[0.055] p-6">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <div className="font-mono text-xs uppercase tracking-[0.28em] text-cyan-200/70">Runtime Readiness</div>
@@ -209,9 +242,8 @@ export default function DashboardPage() {
         </div>
 
         <motion.section
-          initial={{ opacity: 0, y: 16 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08 }}
           className="mb-8 rounded-[30px] border border-amber-300/15 bg-[linear-gradient(135deg,rgba(251,191,36,0.11),rgba(8,14,26,0.82))] p-6"
         >
           <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
@@ -245,6 +277,10 @@ export default function DashboardPage() {
           <MetricCard icon={Target} label="Lead Tasks" value={`${taskEvents.length}`} detail="AG-UI task state events." />
           <MetricCard icon={Radar} label="Prospects" value={`${prospectEvents.length}`} detail="Acquisition evidence events." />
           <MetricCard icon={Clock3} label="Watchdogs" value={`${activeHeartbeats.length}`} detail="Active heartbeat summaries." />
+        </div>
+
+        <div className="mb-8">
+          <OperatorLaunchChecklist steps={launchSteps} />
         </div>
 
         {loading ? (

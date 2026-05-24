@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Building2, Loader2, Plus, Radio, Shield, Sparkles } from 'lucide-react'
 import OperatorNav from '@/components/operator/OperatorNav'
+import OperatorLaunchChecklist, { type LaunchStep } from '@/components/operator/OperatorLaunchChecklist'
 
 type Tenant = {
   client_id: string
@@ -142,6 +143,38 @@ export default function TenantsPage() {
     }
   }
 
+  const profilesReady = tenants.filter((tenant) => tenant.maxx_runtime.status === 'ready').length
+  const leadDeskEnabled = tenants.filter((tenant) => tenant.manifest.enabled_workflows.includes('lead-desk')).length
+  const launchSteps: LaunchStep[] = [
+    {
+      label: 'Create record',
+      detail: tenants.length > 0 ? 'Client identity exists in the control plane.' : 'Create the tenant record and smart-site manifest.',
+      status: tenants.length > 0 ? 'complete' : 'current',
+    },
+    {
+      label: 'Provision MAXX',
+      detail: profilesReady > 0 ? 'At least one Agent MAXX profile is ready.' : 'Provision the profile binding after creating the tenant.',
+      status: profilesReady > 0 ? 'complete' : tenants.length > 0 ? 'current' : 'pending',
+    },
+    {
+      label: 'Enable Lead Desk',
+      detail: leadDeskEnabled > 0 ? 'Lead Desk is enabled for a tenant.' : 'Lead Desk should be the first employee workflow.',
+      status: leadDeskEnabled > 0 ? 'complete' : tenants.length > 0 ? 'current' : 'pending',
+    },
+    {
+      label: 'Submit inquiry',
+      detail: 'Send one demo inquiry to prove intake, qualification, and routing.',
+      status: profilesReady > 0 ? 'current' : 'pending',
+      href: '/lead-desk',
+    },
+    {
+      label: 'Confirm launch',
+      detail: 'Check deploy readiness and private backend posture before client data.',
+      status: profilesReady > 0 ? 'current' : 'pending',
+      href: '/deploy',
+    },
+  ]
+
   return (
     <main className="min-h-screen bg-[#050810] text-white">
       <OperatorNav />
@@ -183,13 +216,21 @@ export default function TenantsPage() {
           <MetricCard label="Tenants" value={`${tenants.length}`} detail="Client records in the MAXX control plane." />
           <MetricCard
             label="Profiles Ready"
-            value={`${tenants.filter((tenant) => tenant.maxx_runtime.status === 'ready').length}`}
+            value={`${profilesReady}`}
             detail="Agent MAXX profiles with full runtime setup."
           />
           <MetricCard
             label="Lead Desk Enabled"
-            value={`${tenants.filter((tenant) => tenant.manifest.enabled_workflows.includes('lead-desk')).length}`}
+            value={`${leadDeskEnabled}`}
             detail="Tenants with the first employee workflow active."
+          />
+        </div>
+
+        <div className="mb-8">
+          <OperatorLaunchChecklist
+            title="Tenant launch checklist"
+            eyebrow="New client in 15 minutes"
+            steps={launchSteps}
           />
         </div>
 
