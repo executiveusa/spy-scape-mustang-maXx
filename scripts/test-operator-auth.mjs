@@ -61,6 +61,13 @@ for (const page of [
   assert.match(readRequired(page), /OperatorNav/, `${page} must render the shared Agent MAXX operator shell`)
 }
 
+const launchChecklist = readRequired('src/components/operator/OperatorLaunchChecklist.tsx')
+assert.match(launchChecklist, /New client in 15 minutes/, 'operator launch checklist must guide repeatable client onboarding')
+assert.match(launchChecklist, /complete/, 'operator launch checklist must support completed steps')
+assert.match(launchChecklist, /current/, 'operator launch checklist must support the next active step')
+assert.match(readRequired('src/app/dashboard/page.tsx'), /OperatorLaunchChecklist/, 'dashboard must show the operator launch checklist')
+assert.match(readRequired('src/app/tenants/page.tsx'), /Tenant launch checklist/, 'tenants page must show tenant launch progress')
+
 for (const apiRoute of [
   'src/app/api/runtime/route.ts',
   'src/app/api/tenants/route.ts',
