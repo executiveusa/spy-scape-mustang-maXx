@@ -2,6 +2,7 @@ param(
   [string]$CoolifyUrl = $env:COOLIFY_URL,
   [string]$AppUuid = $env:COOLIFY_APP_UUID,
   [string]$BackendOrigin = $env:MAXX_BFF_URL,
+  [string]$BrowserWorkerUrl = $env:MAXX_BROWSER_WORKER_URL,
   [string]$SecretFile = 'C:\Users\execu\Downloads\MAXX_OPENROUTER_API_KEY=sk-or-v1-ce.txt',
   [switch]$UpdateEnv,
   [switch]$Deploy
@@ -151,6 +152,36 @@ if (-not $env:MAXX_BFF_SHARED_SECRET) {
     $env:MAXX_BFF_SHARED_SECRET = $bffSecret
   }
 }
+if (-not $env:FIRECRAWL_API_KEY) {
+  $firecrawlKey = Get-SecretValue -Secrets $secrets -Key 'FIRECRAWL_API_KEY'
+  if (-not $firecrawlKey) {
+    $firecrawlKey = Get-SecretValue -Secrets $secrets -Key 'FIRECRAWL_API_TOKEN'
+  }
+  if ($firecrawlKey) {
+    $env:FIRECRAWL_API_KEY = $firecrawlKey
+  }
+}
+if (-not $env:MAXX_BROWSER_WORKER_SECRET) {
+  $workerSecret = Get-SecretValue -Secrets $secrets -Key 'MAXX_BROWSER_WORKER_SECRET'
+  if ($workerSecret) {
+    $env:MAXX_BROWSER_WORKER_SECRET = $workerSecret
+  }
+}
+if (-not $env:MAXX_BROWSER_ALLOWED_DOMAINS) {
+  $allowedDomains = Get-SecretValue -Secrets $secrets -Key 'MAXX_BROWSER_ALLOWED_DOMAINS'
+  if ($allowedDomains) {
+    $env:MAXX_BROWSER_ALLOWED_DOMAINS = $allowedDomains
+  }
+}
+if (-not $env:MAXX_BROWSER_AUTONOMY_ENABLED) {
+  $autonomyEnabled = Get-SecretValue -Secrets $secrets -Key 'MAXX_BROWSER_AUTONOMY_ENABLED'
+  if ($autonomyEnabled) {
+    $env:MAXX_BROWSER_AUTONOMY_ENABLED = $autonomyEnabled
+  }
+}
+if (-not $BrowserWorkerUrl) {
+  $BrowserWorkerUrl = Get-SecretValue -Secrets $secrets -Key 'MAXX_BROWSER_WORKER_URL'
+}
 
 Write-Host "Checking Coolify API..."
 $connection = Resolve-CoolifyConnection -RequestedUrl $CoolifyUrl -Secrets $secrets
@@ -207,6 +238,25 @@ if ($UpdateEnv) {
       @{ key = 'MAXX_ALLOW_PUBLIC_BFF'; value = 'false'; is_literal = $true; is_multiline = $false; is_preview = $false }
     )
   }
+
+  if ($env:FIRECRAWL_API_KEY) {
+    $envPayload.data += @{ key = 'FIRECRAWL_API_KEY'; value = $env:FIRECRAWL_API_KEY; is_literal = $true; is_multiline = $false; is_preview = $false }
+  } else {
+    Write-Warning "FIRECRAWL_API_KEY is not available; Lead Acquisition web research will report degraded source health."
+  }
+
+  if ($BrowserWorkerUrl) {
+    $envPayload.data += @{ key = 'MAXX_BROWSER_WORKER_URL'; value = $BrowserWorkerUrl; is_literal = $true; is_multiline = $false; is_preview = $false }
+  }
+  if ($env:MAXX_BROWSER_WORKER_SECRET) {
+    $envPayload.data += @{ key = 'MAXX_BROWSER_WORKER_SECRET'; value = $env:MAXX_BROWSER_WORKER_SECRET; is_literal = $true; is_multiline = $false; is_preview = $false }
+  } else {
+    Write-Warning "MAXX_BROWSER_WORKER_SECRET is not available; browser worker integration will stay disabled/degraded."
+  }
+  if ($env:MAXX_BROWSER_ALLOWED_DOMAINS) {
+    $envPayload.data += @{ key = 'MAXX_BROWSER_ALLOWED_DOMAINS'; value = $env:MAXX_BROWSER_ALLOWED_DOMAINS; is_literal = $true; is_multiline = $false; is_preview = $false }
+  }
+  $envPayload.data += @{ key = 'MAXX_BROWSER_AUTONOMY_ENABLED'; value = $(if ($env:MAXX_BROWSER_AUTONOMY_ENABLED) { $env:MAXX_BROWSER_AUTONOMY_ENABLED } else { 'false' }); is_literal = $true; is_multiline = $false; is_preview = $false }
 
   Invoke-Coolify -Method PATCH -Path "/api/v1/applications/$AppUuid/envs/bulk" -Body $envPayload | Out-Null
   Write-Host "Updated backend environment variables for app $AppUuid."
