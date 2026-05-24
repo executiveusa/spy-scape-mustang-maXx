@@ -68,6 +68,18 @@ assert.match(launchChecklist, /current/, 'operator launch checklist must support
 assert.match(readRequired('src/app/dashboard/page.tsx'), /OperatorLaunchChecklist/, 'dashboard must show the operator launch checklist')
 assert.match(readRequired('src/app/tenants/page.tsx'), /Tenant launch checklist/, 'tenants page must show tenant launch progress')
 
+const leadDeskPage = readRequired('src/app/lead-desk/page.tsx')
+assert.match(leadDeskPage, /LeadDeskReviewPanel/, 'Lead Desk must render the reusable operator review panel')
+assert.match(leadDeskPage, /nextPayload\.client_id/, 'Lead Desk intake must align to the active tenant returned by the backend')
+
+const leadDeskReview = readRequired('src/components/operator/LeadDeskReviewPanel.tsx')
+assert.match(leadDeskReview, /What MAXX captured/, 'Lead Desk review panel must show captured inquiry details')
+assert.match(leadDeskReview, /Why MAXX scored it/, 'Lead Desk review panel must explain qualification reasons')
+assert.match(leadDeskReview, /Workspace evidence/, 'Lead Desk review panel must expose workspace evidence')
+assert.match(leadDeskReview, /Escalate attention/, 'Lead Desk review panel must support attention escalation')
+assert.match(leadDeskReview, /Start follow-up/, 'Lead Desk review panel must support follow-up status updates')
+assert.match(leadDeskReview, /Complete task/, 'Lead Desk review panel must support completion')
+
 for (const apiRoute of [
   'src/app/api/runtime/route.ts',
   'src/app/api/tenants/route.ts',
