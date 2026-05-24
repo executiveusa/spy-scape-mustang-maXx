@@ -28,6 +28,43 @@ function Invoke-Step {
   & $Command
 }
 
+function Import-VerificationSecretFile {
+  param([string]$Path)
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    throw "Secret file not found: $Path"
+  }
+
+  $allowedKeys = @(
+    'MAXX_BFF_URL',
+    'MAXX_VERIFY_BACKEND_URL',
+    'MAXX_VERIFY_FRONTEND_URL',
+    'MAXX_VERIFY_BROWSER_WORKER_URL',
+    'MAXX_BFF_SHARED_SECRET',
+    'MAXX_OPERATOR_PASSWORD'
+  )
+
+  $loaded = 0
+  $raw = Get-Content -Raw -LiteralPath $Path
+  foreach ($line in ($raw -split "`r?`n")) {
+    $trim = $line.Trim()
+    if (-not $trim -or $trim.StartsWith('#') -or -not ($trim -match '=')) {
+      continue
+    }
+
+    $parts = $trim -split '=', 2
+    $key = $parts[0].Trim()
+    if ($allowedKeys -notcontains $key) {
+      continue
+    }
+
+    [Environment]::SetEnvironmentVariable($key, $parts[1].Trim(), 'Process')
+    $loaded += 1
+  }
+
+  return $loaded
+}
+
 function Invoke-JsonGet {
   param([string]$Url)
   $headers = @{}
@@ -69,6 +106,27 @@ function Invoke-AuthorizedPatch {
 
 Push-Location $root
 try {
+  if ($SecretFile) {
+    $loadedSecretKeys = Import-VerificationSecretFile -Path $SecretFile
+    Write-Host "Loaded $loadedSecretKeys verification env value(s) from secret file."
+
+    if (-not $BackendUrl) {
+      $BackendUrl = if ($env:MAXX_VERIFY_BACKEND_URL) { $env:MAXX_VERIFY_BACKEND_URL } else { $env:MAXX_BFF_URL }
+    }
+    if (-not $FrontendUrl) {
+      $FrontendUrl = $env:MAXX_VERIFY_FRONTEND_URL
+    }
+    if (-not $BrowserWorkerUrl) {
+      $BrowserWorkerUrl = $env:MAXX_VERIFY_BROWSER_WORKER_URL
+    }
+    if (-not $BffSharedSecret) {
+      $BffSharedSecret = $env:MAXX_BFF_SHARED_SECRET
+    }
+    if (-not $OperatorPassword) {
+      $OperatorPassword = $env:MAXX_OPERATOR_PASSWORD
+    }
+  }
+
   Invoke-Step "Backend integration tests" {
     py -3 -m unittest backend\tests\test_maxx_bff.py -v
     if ($LASTEXITCODE -ne 0) {

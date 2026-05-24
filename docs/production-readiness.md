@@ -188,10 +188,10 @@ Strict live backend verification:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env" `
   -BackendUrl "https://private-or-tunneled-bff-origin" `
   -BrowserWorkerUrl "https://private-or-tunneled-browser-worker-origin" `
   -FrontendUrl "https://your-vercel-preview-url" `
-  -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -CheckVpsNetworkExposure `
   -RunVisualInspection `
   -NetworkExpectedMode private-required `
@@ -200,6 +200,8 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
 ```
 
 The strict command must pass before claiming model-backed Lead Desk execution. `-RunVisualInspection` makes the same command capture browser screenshot evidence for `/`, `/dashboard`, `/lead-desk`, `/lead-acquisition`, `/tenants`, and `/deploy`.
+
+`-SecretFile` is intentionally narrow. It imports only verification-facing values such as `MAXX_BFF_URL`, `MAXX_BFF_SHARED_SECRET`, and `MAXX_OPERATOR_PASSWORD`; provider tokens remain provider-managed and must not be printed or committed.
 
 ## jCodeMunch and Superpowers
 

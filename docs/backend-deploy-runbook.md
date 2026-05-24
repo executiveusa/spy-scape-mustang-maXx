@@ -24,10 +24,10 @@ MAXX_RUNTIME_HOME=/runtime/maxx
 MAXX_RUNTIME_VENDOR_PATH=/opt/agent-maxx-runtime
 MAXX_RUNTIME_PROVIDER=openrouter
 MAXX_RUNTIME_MODEL=openrouter/owl-alpha
-MAXX_OPENROUTER_API_KEY=sk-or-v1-...
-FIRECRAWL_API_KEY=replace-with-firecrawl-key
+MAXX_OPENROUTER_API_KEY=...
+FIRECRAWL_API_KEY=...
 MAXX_BROWSER_WORKER_URL=http://agent-maxx-browser-worker:8020
-MAXX_BROWSER_WORKER_SECRET=replace-with-worker-secret
+MAXX_BROWSER_WORKER_SECRET=...
 MAXX_BROWSER_ALLOWED_DOMAINS=example.com,iana.org
 MAXX_BROWSER_AUTONOMY_ENABLED=false
 ```
@@ -38,13 +38,21 @@ Set these in Vercel production, preview, and development as needed:
 
 ```env
 MAXX_BFF_URL=http://maxx-api.31.220.58.212.sslip.io
-MAXX_BFF_SHARED_SECRET=same-secret-as-backend
-MAXX_OPERATOR_PASSWORD=generated-password
-MAXX_OPERATOR_SESSION_SECRET=generated-session-secret
+MAXX_BFF_SHARED_SECRET=...
+MAXX_OPERATOR_PASSWORD=...
+MAXX_OPERATOR_SESSION_SECRET=...
 MAXX_ALLOW_LOCAL_BFF_IN_PRODUCTION=false
 ```
 
 After Vercel env changes, redeploy production.
+
+For local verification, keep the rotated deployment values in a private file outside the repo, for example:
+
+```text
+E:\THE PAULI FILES\agent-maxx-rotated-20260524.env
+```
+
+`scripts/verify-production.ps1` reads only the verification keys it needs from `-SecretFile`: `MAXX_BFF_URL`, `MAXX_VERIFY_BACKEND_URL`, `MAXX_VERIFY_FRONTEND_URL`, `MAXX_VERIFY_BROWSER_WORKER_URL`, `MAXX_BFF_SHARED_SECRET`, and `MAXX_OPERATOR_PASSWORD`. Do not commit this file or paste its values into PRs, docs, logs, or chat.
 
 ## Persistent Volumes
 
@@ -84,8 +92,13 @@ The normal deploy path is:
 Manual Coolify reconnect, if needed:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/connect-coolify-backend.ps1 -UpdateEnv -Deploy
+powershell -ExecutionPolicy Bypass -File scripts/connect-coolify-backend.ps1 `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env" `
+  -UpdateEnv `
+  -Deploy
 ```
+
+The backend connector updates the required Agent MAXX runtime values plus Firecrawl and browser-worker integration keys when those values exist in the private secret bundle.
 
 Browser worker Coolify reconnect, after creating the private app from `backend/browser-worker.coolify.json`:
 
@@ -101,7 +114,7 @@ VPS exposure gate for the current controlled demo:
 powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 `
   -BackendUrl "http://31.220.58.212:8010" `
   -BrowserWorkerUrl "http://31.220.58.212:8020" `
-  -SecretFile "E:\THE PAULI FILES\.ENV" `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env" `
   -ExpectedMode controlled-demo
 ```
 
@@ -122,11 +135,8 @@ Controlled demo:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
-  -BackendUrl "http://31.220.58.212:8010" `
-  -BrowserWorkerUrl "http://31.220.58.212:8020" `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env" `
   -FrontendUrl "https://spy-scape-mustang-maxx.vercel.app" `
-  -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
-  -OperatorPassword $env:MAXX_OPERATOR_PASSWORD `
   -CheckVpsNetworkExposure `
   -RunVisualInspection `
   -NetworkExpectedMode controlled-demo `

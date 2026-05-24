@@ -19,6 +19,9 @@ assert.match(verify, /operator-session/, 'verify-production must test operator l
 assert.match(verify, /smart-site-story/, 'verify-production must smoke the public story endpoint')
 assert.match(verify, /RunVisualInspection/, 'verify-production must offer an explicit visual inspection gate')
 assert.match(verify, /npm run verify:visual/, 'verify-production must be able to run visual inspection')
+assert.match(verify, /Import-VerificationSecretFile/, 'verify-production must import a secure verification secret bundle')
+assert.match(verify, /MAXX_VERIFY_BACKEND_URL/, 'verification secret import must support backend URL overrides')
+assert.match(verify, /MAXX_OPERATOR_PASSWORD/, 'verification secret import must support operator login smoke checks')
 assert.match(verify, /check-vps-network-exposure\.ps1/, 'verify-production must be able to run the VPS network exposure gate')
 assert.match(readRequired('backend/README.md'), /\/v1\/maxx\/ag-ui\/events/, 'backend README must document the AG-UI event bridge')
 assert.match(readRequired('docs/production-readiness.md'), /\/v1\/maxx\/ag-ui\/events/, 'production readiness must include AG-UI bridge verification')
@@ -76,6 +79,9 @@ const backendConnect = readRequired('scripts/connect-coolify-backend.ps1')
 assert.match(backendConnect, /Resolve-CoolifyConnection/, 'backend connector must autodiscover a working Coolify URL/token pair')
 assert.match(backendConnect, /https:\/\/app\.coolify\.io/, 'backend connector must fall back to Coolify Cloud when local env has placeholders')
 assert.match(backendConnect, /Get-SecretValues/, 'backend connector must handle duplicate Coolify token keys safely')
+assert.match(backendConnect, /FIRECRAWL_API_KEY/, 'backend connector must update Firecrawl source credentials')
+assert.match(backendConnect, /MAXX_BROWSER_WORKER_SECRET/, 'backend connector must wire the private browser worker secret')
+assert.match(backendConnect, /MAXX_BROWSER_AUTONOMY_ENABLED/, 'backend connector must keep browser autonomy explicitly controlled')
 
 for (const doc of [
   'docs/backend-deploy-runbook.md',
