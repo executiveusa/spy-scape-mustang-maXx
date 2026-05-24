@@ -37,7 +37,7 @@ MAXX_BROWSER_AUTONOMY_ENABLED=false
 Set these in Vercel production, preview, and development as needed:
 
 ```env
-MAXX_BFF_URL=http://31.220.58.212:8010
+MAXX_BFF_URL=http://maxx-api.31.220.58.212.sslip.io
 MAXX_BFF_SHARED_SECRET=same-secret-as-backend
 MAXX_OPERATOR_PASSWORD=generated-password
 MAXX_OPERATOR_SESSION_SECRET=generated-session-secret
@@ -138,6 +138,15 @@ Before strict live verification, validate backend env on the VPS:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/check-backend-production-env.ps1 -RequireSecret -RequireAcquisition
 ```
+
+Visual inspection is required after every frontend or routing change. It captures screenshots and a JSON report under `ops/visual-inspection/<timestamp>/`:
+
+```powershell
+$env:MAXX_VISUAL_BASE_URL="https://spy-scape-mustang-maxx.vercel.app"
+npm run verify:visual
+```
+
+For protected operator pages, set `MAXX_OPERATOR_PASSWORD` and optionally `MAXX_OPERATOR_TENANT_ID` before running the command. Without an operator password, protected pages must redirect to `/login` and the screenshot evidence should show that state.
 
 ## Private Backend Gate
 

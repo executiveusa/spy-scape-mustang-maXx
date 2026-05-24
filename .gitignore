@@ -37,6 +37,7 @@ next-env.d.ts
 
 # Testing
 coverage/
+ops/visual-inspection/
 
 # Backend runtime artifacts
 backend/.venv/
