@@ -17,9 +17,17 @@ for (const command of ['test:smart-site-story', 'test:operator-auth', 'npx tsc -
 assert.match(verify, /test_browser_worker\.py/, 'verify-production must run browser worker tests')
 assert.match(verify, /operator-session/, 'verify-production must test operator login/session')
 assert.match(verify, /smart-site-story/, 'verify-production must smoke the public story endpoint')
+assert.match(verify, /RunVisualInspection/, 'verify-production must offer an explicit visual inspection gate')
+assert.match(verify, /npm run verify:visual/, 'verify-production must be able to run visual inspection')
 assert.match(verify, /check-vps-network-exposure\.ps1/, 'verify-production must be able to run the VPS network exposure gate')
 assert.match(readRequired('backend/README.md'), /\/v1\/maxx\/ag-ui\/events/, 'backend README must document the AG-UI event bridge')
 assert.match(readRequired('docs/production-readiness.md'), /\/v1\/maxx\/ag-ui\/events/, 'production readiness must include AG-UI bridge verification')
+
+const deployPage = readRequired('src/app/deploy/page.tsx')
+assert.match(deployPage, /Production closeout gates/, 'deploy console must show production closeout gates')
+assert.match(deployPage, /Private backend origin/, 'deploy console must show the private backend gate')
+assert.match(deployPage, /Token rotation/, 'deploy console must show the token rotation gate')
+assert.match(deployPage, /Visual inspection/, 'deploy console must show the visual inspection gate')
 
 const exposure = readRequired('scripts/check-vps-network-exposure.ps1')
 assert.match(exposure, /private-required/, 'network exposure checker must support a private-required real-client gate')

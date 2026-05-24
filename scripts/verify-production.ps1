@@ -10,7 +10,8 @@ param(
   [switch]$CheckVpsNetworkExposure,
   [switch]$RequireLiveStack,
   [switch]$RequireMaxxRuntimeExecutionReady,
-  [switch]$RequireHermesExecutionReady
+  [switch]$RequireHermesExecutionReady,
+  [switch]$RunVisualInspection
 )
 
 $ErrorActionPreference = 'Stop'
@@ -392,6 +393,23 @@ const password = process.env.MAXX_OPERATOR_PASSWORD;
         Write-Warning "MAXX_OPERATOR_PASSWORD is not set; skipping authenticated operator smoke."
       }
     }
+
+    if ($RunVisualInspection) {
+      Invoke-Step "Frontend visual inspection" {
+        $previousVisualBaseUrl = $env:MAXX_VISUAL_BASE_URL
+        $env:MAXX_VISUAL_BASE_URL = $FrontendUrl
+        try {
+          npm run verify:visual
+          if ($LASTEXITCODE -ne 0) {
+            throw "Visual inspection failed with exit code $LASTEXITCODE."
+          }
+        } finally {
+          $env:MAXX_VISUAL_BASE_URL = $previousVisualBaseUrl
+        }
+      }
+    }
+  } elseif ($RunVisualInspection) {
+    throw "RunVisualInspection requires -FrontendUrl or MAXX_VERIFY_FRONTEND_URL."
   }
 
   Write-Host ""

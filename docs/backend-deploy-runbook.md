@@ -128,10 +128,13 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-production.ps1 `
   -BffSharedSecret $env:MAXX_BFF_SHARED_SECRET `
   -OperatorPassword $env:MAXX_OPERATOR_PASSWORD `
   -CheckVpsNetworkExposure `
+  -RunVisualInspection `
   -NetworkExpectedMode controlled-demo `
   -RequireLiveStack `
   -RequireMaxxRuntimeExecutionReady
 ```
+
+Keep `-RunVisualInspection` on for every production closeout pass so deployment verification also writes browser screenshot evidence under `ops/visual-inspection/<timestamp>/`.
 
 Before strict live verification, validate backend env on the VPS:
 

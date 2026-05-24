@@ -87,6 +87,43 @@ async function loadDeployState(): Promise<{ deployState: DeployState; backendOnl
 
 export default async function DeployPage() {
   const { deployState, backendOnline } = await loadDeployState()
+  const productionGates = [
+    {
+      label: 'Private backend origin',
+      detail: 'FastAPI must be reachable only through the named private/proxy path, with direct 8010 and 8020 ports closed before real client data.',
+      ready: deployState.blockers.every((blocker) => !blocker.toLowerCase().includes('private')),
+    },
+    {
+      label: 'Environment parity',
+      detail: 'Vercel and VPS/Coolify must share MAXX_BFF_URL, MAXX_BFF_SHARED_SECRET, operator auth, runtime path, and allowed origins.',
+      ready: backendOnline,
+    },
+    {
+      label: 'Token rotation',
+      detail: 'Rotate setup-era OpenRouter, Coolify, Vercel, Firecrawl, browser-worker, operator, and BFF secrets before real clients.',
+      ready: false,
+    },
+    {
+      label: 'Runtime execution',
+      detail: 'Strict verification must prove /v1/maxx/runtime/health reports execution_ready=true for model-backed Lead Desk work.',
+      ready: !deployState.blockers.some((blocker) => blocker.toLowerCase().includes('runtime')),
+    },
+    {
+      label: 'Lead Desk round trip',
+      detail: 'Verification must create a tenant, provision MAXX, submit an inquiry, complete a task, and confirm heartbeat state.',
+      ready: backendOnline,
+    },
+    {
+      label: 'Lead Acquisition canary',
+      detail: 'Verification must run an owner-approved canary prospect and promote it into Lead Desk without autonomous browsing.',
+      ready: backendOnline,
+    },
+    {
+      label: 'Visual inspection',
+      detail: 'Run npm run verify:visual against the live frontend after every operator UI, route, proxy, or deployment change.',
+      ready: false,
+    },
+  ]
 
   return (
     <main className="min-h-screen bg-[#050810] text-white">
@@ -162,6 +199,48 @@ export default async function DeployPage() {
             </div>
             <div className="truncate text-2xl font-black">{deployState.launcher.stop}</div>
             <p className="mt-2 text-sm text-white/65">Current shutdown path for the verified local listeners.</p>
+          </div>
+        </section>
+
+        <section className="mb-10 rounded-[28px] border border-amber-300/15 bg-[linear-gradient(135deg,rgba(251,191,36,0.1),rgba(255,255,255,0.025))] p-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.28em] text-amber-100/70">
+                Production closeout gates
+              </p>
+              <h2 className="mt-2 text-2xl font-black uppercase tracking-[0.08em] text-white">
+                what must be true before real client launch
+              </h2>
+            </div>
+            <span className="rounded-full border border-white/10 bg-black/20 px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] text-white/58">
+              {productionGates.filter((gate) => gate.ready).length}/{productionGates.length} reporting ready
+            </span>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {productionGates.map((gate) => (
+              <div
+                key={gate.label}
+                className={`rounded-2xl border p-4 ${
+                  gate.ready
+                    ? 'border-emerald-400/20 bg-emerald-400/10'
+                    : 'border-white/10 bg-black/20'
+                }`}
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  {gate.ready ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-amber-300" />
+                  )}
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/38">
+                    {gate.ready ? 'ready' : 'manual gate'}
+                  </span>
+                </div>
+                <p className="text-sm font-bold uppercase tracking-[0.08em] text-white">{gate.label}</p>
+                <p className="mt-2 text-sm leading-6 text-white/62">{gate.detail}</p>
+              </div>
+            ))}
           </div>
         </section>
 
