@@ -6,6 +6,8 @@ HTML-in-Canvas is a future visual-lab layer for Agent MAXX. It can project real 
 
 This is not a production dependency yet. The current API requires experimental browser support, so it belongs behind a lab route and fallback path until browser support is stable.
 
+Future frontend/design agents must load `html-in-canvas-visual-lab` before MAXX visual-language, design-system card, HUD, briefing-screen, car overlay, SeedDance reference, or pre-animation layout work. The skill is there to keep cinematic design grounded in real React UI and backend truth.
+
 ## Where It Fits
 
 - Now: keep building the real Agent MAXX backend and operator surfaces.
@@ -34,6 +36,7 @@ Use it when working on:
 
 - Keep `/dashboard`, `/lead-desk`, `/lead-acquisition`, `/tenants`, and `/deploy` normal accessible React routes.
 - Use HTML-in-Canvas only for lab/prototype routes or generated visual references.
+- Use the local `html-in-canvas-visual-lab` skill before any frontend/design phase that may become HUD, briefing, car, or animation reference material.
 - The source component must be real DOM before being projected into canvas.
 - Unsupported browsers must show a clean fallback.
 - Do not use this to fake runtime claims.
@@ -54,4 +57,3 @@ Use it when working on:
 - The lab route clearly labels unsupported-browser state.
 - The lab uses real MAXX visual components and real backend-shaped data.
 - Screenshots can be used as references for the final car/intro art pass.
-
