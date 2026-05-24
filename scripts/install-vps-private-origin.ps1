@@ -32,7 +32,7 @@ ATTEMPT_TLS="$($AttemptTls.IsPresent)"
 
 echo "Installing Nginx private-origin proxy for Agent MAXX..."
 sudo apt-get update
-sudo apt-get install -y nginx curl ufw
+sudo apt-get install -y nginx curl
 
 sudo tee /etc/nginx/sites-available/agent-maxx-private-origin >/dev/null <<NGINX
 server {
@@ -77,7 +77,7 @@ curl --fail --silent --show-error http://127.0.0.1:8010/health >/tmp/maxx-bff-lo
 curl --fail --silent --show-error -H "Host: $OriginHost" http://127.0.0.1/health >/tmp/maxx-bff-origin-health.json
 echo "Nginx private-origin HTTP proxy is healthy."
 
-if [ "$ATTEMPT_TLS" = "True" ]; then
+if [ "`$ATTEMPT_TLS" = "True" ]; then
   echo "Attempting Let's Encrypt TLS for $OriginHost..."
   sudo apt-get install -y certbot python3-certbot-nginx
   if sudo certbot --nginx -d "$OriginHost" --register-unsafely-without-email --agree-tos --redirect --non-interactive; then
@@ -87,15 +87,38 @@ if [ "$ATTEMPT_TLS" = "True" ]; then
   fi
 fi
 
-if [ "$APPLY_FIREWALL" = "True" ]; then
+if [ "`$APPLY_FIREWALL" = "True" ]; then
   echo "Applying direct-port closure. SSH, HTTP, and HTTPS stay open; direct BFF/worker ports are denied."
-  sudo ufw allow OpenSSH
-  sudo ufw allow 80/tcp
-  sudo ufw allow 443/tcp
-  sudo ufw deny 8010/tcp
-  sudo ufw deny 8020/tcp
-  sudo ufw --force enable
-  sudo ufw status verbose
+  echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+  echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent
+
+  for PORT in 22 80 443; do
+    sudo iptables -C INPUT -p tcp --dport "`$PORT" -j ACCEPT 2>/dev/null || sudo iptables -I INPUT 1 -p tcp --dport "`$PORT" -j ACCEPT
+  done
+
+  PUBLIC_IFACE="`$(ip route get 1.1.1.1 | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -n1)"
+  if [ -n "`$PUBLIC_IFACE" ]; then
+    for PORT in 8010 8020; do
+      sudo iptables -D INPUT -p tcp --dport "`$PORT" -j DROP 2>/dev/null || true
+      sudo iptables -C INPUT -i "`$PUBLIC_IFACE" -p tcp --dport "`$PORT" -j DROP 2>/dev/null || sudo iptables -I INPUT 1 -i "`$PUBLIC_IFACE" -p tcp --dport "`$PORT" -j DROP
+    done
+  else
+    echo "WARNING: Could not identify public interface for INPUT direct-port closure."
+  fi
+
+  if [ -n "`$PUBLIC_IFACE" ] && sudo iptables -S DOCKER-USER >/dev/null 2>&1; then
+    echo "Applying Docker published-port closure on interface `$PUBLIC_IFACE for ports 8010 and 8020."
+    sudo iptables -C DOCKER-USER -i "`$PUBLIC_IFACE" -p tcp -m multiport --dports 8010,8020 -j DROP 2>/dev/null || sudo iptables -I DOCKER-USER 1 -i "`$PUBLIC_IFACE" -p tcp -m multiport --dports 8010,8020 -j DROP
+  else
+    echo "WARNING: Could not identify public interface or DOCKER-USER chain; Docker published ports may still bypass INPUT rules."
+  fi
+
+  sudo mkdir -p /etc/iptables
+  sudo sh -c 'iptables-save > /etc/iptables/rules.v4'
+  sudo netfilter-persistent save
+  sudo iptables -S INPUT | grep -E -- '--dport (22|80|443|8010|8020)' || true
+  sudo iptables -S DOCKER-USER || true
 else
   echo "Firewall changes skipped. Re-run with -ApplyFirewall after Vercel uses the named origin."
 fi
@@ -115,4 +138,4 @@ Write-Host "Set Vercel env:"
 Write-Host "MAXX_BFF_URL=http://$OriginHost"
 Write-Host ""
 Write-Host "Then redeploy Vercel and run:"
-Write-Host "powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 -BackendUrl `"http://$OriginHost`" -DirectBackendUrl `"http://$VpsIp:8010`" -DirectBrowserWorkerUrl `"http://$VpsIp:8020`" -ExpectedMode private-required"
+Write-Host "powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 -BackendUrl `"http://$OriginHost`" -DirectBackendUrl `"http://$($VpsIp):8010`" -DirectBrowserWorkerUrl `"http://$($VpsIp):8020`" -ExpectedMode private-required"

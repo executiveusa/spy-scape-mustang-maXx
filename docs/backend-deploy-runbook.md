@@ -192,6 +192,8 @@ powershell -ExecutionPolicy Bypass -File scripts/install-vps-private-origin.ps1 
   -ApplyFirewall
 ```
 
+The installer uses durable `iptables`/`netfilter-persistent` rules because Docker-published ports can bypass plain host firewall rules. It keeps SSH, HTTP, and HTTPS open, preserves loopback access for Nginx, and blocks public direct access to `8010` and `8020`.
+
 Private-required verification:
 
 ```powershell
