@@ -6,6 +6,13 @@
 2. Use `Ralphy` as the wave executor for multi-step work under `prd/`.
 3. Fall back to direct file reads only when symbol-targeted retrieval is unavailable or insufficient.
 
+## Frontend Design And Visual Lab Skills
+
+- Before frontend design, cinematic UI, MAXX visual-language, design-system card, HUD, briefing-screen, car overlay, SeedDance reference, or pre-animation layout work, load the local skill at `C:\Users\execu\.codex\skills\html-in-canvas-visual-lab\SKILL.md`.
+- Treat HTML-in-Canvas as a lab-only bridge from real React UI to canvas/WebGL references. Do not make normal operator or public routes depend on experimental browser APIs.
+- Keep accessible React/HTML as the source of truth first; `/visual-lab`, `/briefing-lab`, or future HUD prototype routes may project those components into canvas with a DOM fallback.
+- Pair visual work with Superpowers planning/TDD/verification gates and run `npm run verify:visual` after UI, routing, or visual-lab changes.
+
 ## jCodeMunch
 
 - Purpose: repo indexing, symbol lookup, blast-radius checks, changed-symbol review, and refactor planning.

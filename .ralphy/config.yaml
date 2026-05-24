@@ -23,6 +23,9 @@ rules:
   - "Do not claim Lead Desk execution is model-backed unless provider status confirms execution_ready."
   - "Prefer tenant-safe, idempotent backend changes and verify both degraded and healthy states."
   - "Use the PRDs under prd/ as the execution source for sequential waves."
+  - "Before frontend design, cinematic UI, MAXX visual-language, design-system card, HUD, briefing-screen, car overlay, SeedDance reference, or pre-animation layout work, load the local html-in-canvas-visual-lab skill."
+  - "Keep HTML-in-Canvas lab-only: normal MAXX operator and public routes must remain accessible React/HTML with DOM fallbacks before any canvas/WebGL projection."
+  - "Pair visual/frontend work with Superpowers planning, TDD where behavior changes, and visual verification via npm run verify:visual."
 
 # Boundaries - files/folders the AI should not modify
 boundaries:
