@@ -12,6 +12,17 @@ Required production values:
 
 After changing Vercel env values, redeploy production so serverless functions receive the new values.
 
+Preferred sync command after placing a valid `VERCEL_TOKEN` in the private rotated bundle:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-vercel-env.ps1 `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env" `
+  -Apply `
+  -DeployProduction
+```
+
+The script updates only Agent MAXX server-side env keys, marks secrets as sensitive, and does not print values. Run it before changing the matching Coolify `MAXX_BFF_SHARED_SECRET`, otherwise Vercel and the backend will disagree and protected proxy calls will fail.
+
 ## VPS / Coolify
 
 Required backend values:
@@ -60,5 +71,6 @@ Do not commit either value. Rotate the Coolify token before real client producti
 - Generate a fresh `MAXX_BFF_SHARED_SECRET`.
 - Generate a fresh `MAXX_OPERATOR_PASSWORD`.
 - Generate a fresh `MAXX_OPERATOR_SESSION_SECRET`.
+- Run `scripts/sync-vercel-env.ps1 -Apply -DeployProduction` with the private rotated bundle.
 - Redeploy Vercel and Coolify after secret rotation.
 - Run `scripts/verify-production.ps1` after rotation.
