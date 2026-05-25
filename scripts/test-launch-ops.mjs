@@ -83,6 +83,15 @@ assert.match(backendConnect, /FIRECRAWL_API_KEY/, 'backend connector must update
 assert.match(backendConnect, /MAXX_BROWSER_WORKER_SECRET/, 'backend connector must wire the private browser worker secret')
 assert.match(backendConnect, /MAXX_BROWSER_AUTONOMY_ENABLED/, 'backend connector must keep browser autonomy explicitly controlled')
 
+const vercelSync = readRequired('scripts/sync-vercel-env.ps1')
+assert.match(vercelSync, /Dry run only/, 'Vercel env sync must default to dry run')
+assert.match(vercelSync, /upsert=true/, 'Vercel env sync must upsert values instead of duplicating them')
+assert.match(vercelSync, /MAXX_BFF_SHARED_SECRET/, 'Vercel env sync must update the BFF shared secret')
+assert.match(vercelSync, /MAXX_OPERATOR_SESSION_SECRET/, 'Vercel env sync must update the operator session secret')
+assert.match(vercelSync, /Type = 'sensitive'/, 'Vercel env sync must mark secrets as sensitive')
+assert.match(vercelSync, /DeployProduction/, 'Vercel env sync must optionally redeploy production')
+assert.doesNotMatch(vercelSync, /Write-Host[^\n]*\$value/i, 'Vercel env sync must not print env values')
+
 for (const doc of [
   'docs/backend-deploy-runbook.md',
   'docs/new-client-15-minute-runbook.md',

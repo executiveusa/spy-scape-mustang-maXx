@@ -54,6 +54,24 @@ E:\THE PAULI FILES\agent-maxx-rotated-20260524.env
 
 `scripts/verify-production.ps1` reads only the verification keys it needs from `-SecretFile`: `MAXX_BFF_URL`, `MAXX_VERIFY_BACKEND_URL`, `MAXX_VERIFY_FRONTEND_URL`, `MAXX_VERIFY_BROWSER_WORKER_URL`, `MAXX_BFF_SHARED_SECRET`, and `MAXX_OPERATOR_PASSWORD`. Do not commit this file or paste its values into PRs, docs, logs, or chat.
 
+To sync the Vercel values from that bundle after adding a valid `VERCEL_TOKEN`, run a dry check first:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-vercel-env.ps1 `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env"
+```
+
+Then apply the values and redeploy production:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-vercel-env.ps1 `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env" `
+  -Apply `
+  -DeployProduction
+```
+
+If the token is invalid or missing required project access, stop there. Do not rotate the matching Coolify `MAXX_BFF_SHARED_SECRET` until Vercel sync succeeds.
+
 ## Persistent Volumes
 
 Coolify/VPS must preserve:
