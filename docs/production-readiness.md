@@ -184,6 +184,15 @@ powershell -ExecutionPolicy Bypass -File scripts/check-vps-network-exposure.ps1 
 
 Use `-ExpectedMode controlled-demo` only for owner-approved demos with no real client data. Use `-ExpectedMode private-required` before real-client launch; that mode must not pass until direct public access to the BFF and browser worker is removed.
 
+Coolify network-path diagnostic:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-coolify-network-path.ps1 `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env"
+```
+
+Use this when Coolify reports `running:healthy` but `/health` times out externally. It separates an app/runtime failure from a VPS proxy/firewall blocker.
+
 Strict live backend verification:
 
 ```powershell

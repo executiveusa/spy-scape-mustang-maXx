@@ -92,6 +92,13 @@ assert.match(vercelSync, /Type = 'sensitive'/, 'Vercel env sync must mark secret
 assert.match(vercelSync, /DeployProduction/, 'Vercel env sync must optionally redeploy production')
 assert.doesNotMatch(vercelSync, /Write-Host[^\n]*\$value/i, 'Vercel env sync must not print env values')
 
+const coolifyNetwork = readRequired('scripts/check-coolify-network-path.ps1')
+assert.match(coolifyNetwork, /running|healthy|status/i, 'Coolify network diagnostic must report app status')
+assert.match(coolifyNetwork, /GET \/health HTTP\/1\\\.1" 200 OK/, 'Coolify network diagnostic must detect internal health evidence')
+assert.match(coolifyNetwork, /public proxy ports are closed/, 'Coolify network diagnostic must classify proxy/firewall blockers')
+assert.match(coolifyNetwork, /Test-NetConnection/, 'Coolify network diagnostic must test direct network ports')
+assert.doesNotMatch(coolifyNetwork, /Invoke-RestMethod -Method (POST|PATCH|DELETE)/, 'Coolify network diagnostic must stay read-only')
+
 for (const doc of [
   'docs/backend-deploy-runbook.md',
   'docs/new-client-15-minute-runbook.md',

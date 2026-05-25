@@ -126,6 +126,20 @@ powershell -ExecutionPolicy Bypass -File scripts/connect-coolify-browser-worker.
 
 ## Production Verification
 
+If Coolify says the backend app is healthy but `MAXX_BFF_URL` times out, run the network-path diagnostic before changing env values:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-coolify-network-path.ps1 `
+  -SecretFile "E:\THE PAULI FILES\agent-maxx-rotated-20260524.env"
+```
+
+Expected blocker shape when the app is internally healthy but unreachable from the public internet:
+
+```text
+Diagnosis: app is healthy internally, but public proxy ports are closed or unreachable.
+Next action: restore the VPS proxy/firewall path for 80/443 or provide operator SSH/Coolify terminal access.
+```
+
 VPS exposure gate for the current controlled demo:
 
 ```powershell
